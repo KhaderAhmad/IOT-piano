@@ -1,1 +1,93 @@
+#include <Arduino.h>
+#include <Wire.h>
+#include "Adafruit_MPR121.h"
+#include <I2S.h>  // Include the I2S library for sound output
+
+#ifndef _BV
+#define _BV(bit) (1 << (bit)) 
+#endif
+
+// Define notes frequencies
+#define DO1_FREQUENCY 523
+#define RE_FREQUENCY 587
+#define MI_FREQUENCY 659
+
+// Touch sensor pins
+#define DO1_TouchPin 0
+#define RE_TouchPin 1
+#define MI_TouchPin 2
+
+// Touch parameters and setup
+Adafruit_MPR121 cap = Adafruit_MPR121();
+uint32_t currtouched = 0;
+
+// Sound data
+const int sampleRate = 44100;
+const int amplitude = 10000;
+
+// Function prototypes
+void setup_mpr121();
+void setup_sound();
+void playTone(int frequency);
+
+void setup_mpr121() {
+  while (!Serial) {
+    delay(10);
+  }
+
+  Serial.begin(115200);
+  Serial.println("Adafruit MPR121 Capacitive Touch sensor test");
+
+  if (!cap.begin(0x5A)) {
+    Serial.println("MPR121 not found, check wiring?");
+    while (1); // Halt execution if the sensor is not found
+  }
+  Serial.println("MPR121 found!");
+}
+
+void setup_sound() {
+  // Setup I2S communication
+  if (!I2S.begin(I2S_PHILIPS_MODE, sampleRate, 16)) {
+    Serial.println("Failed to initialize I2S!");
+    while (1);
+  }
+  I2S.setPinout(26, 25, 22); // BCLK, LRC, and DOUT pins for I2S
+}
+
+void playTone(int frequency) {
+  // Generate a sine wave at the given frequency
+  for (int i = 0; i < sampleRate; i++) {
+    float sample = amplitude * sinf(2 * PI * frequency * i / sampleRate);
+    I2S.write((int16_t)sample);
+  }
+}
+
+void setup() {
+  // Set up touch sensor
+  setup_mpr121();
+  // Set up sound
+  setup_sound();
+}
+
+void loop() {
+  // Detect touch
+  currtouched = cap.touched();
+
+  if (currtouched & _BV(DO1_TouchPin)) {
+    Serial.println("DO1 touched");
+    playTone(DO1_FREQUENCY);
+  }
+
+  if (currtouched & _BV(RE_TouchPin)) {
+    Serial.println("RE touched");
+    playTone(RE_FREQUENCY);
+  }
+
+  if (currtouched & _BV(MI_TouchPin)) {
+    Serial.println("MI touched");
+    playTone(MI_FREQUENCY);
+  }
+
+  delay(100); // Debounce delay
+}
 
