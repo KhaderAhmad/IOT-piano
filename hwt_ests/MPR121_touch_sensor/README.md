@@ -1,10 +1,10 @@
-required hardware:
+## required hardware:
 MPR121 touch sensor.
 ESP32 board.
 wires.
 
 
-steps:
+## steps:
 connect to following pins in the touch sensor:
 VCC: Connect to 3.3V on the ESP32.
 GND: Connect to GND on the ESP32.
