@@ -1,0 +1,280 @@
+#include <Wire.h>
+#include "Adafruit_MPR121.h"
+#include <Arduino.h>
+#include "driver/i2s.h"
+
+/////includes for wifi
+#include <WiFi.h>
+#include <HTTPClient.h>
+#include <Firebase_ESP_Client.h>
+
+// Provide the token generation process info.
+#include <addons/TokenHelper.h>
+
+// Provide the RTDB payload printing info and other helper functions.
+#include <addons/RTDBHelper.h>
+
+#define DATABASE_URL "https://console.firebase.google.com/project/iot-piano/database/iot-piano-default-rtdb/data/~2F"
+#define API_KEY "AIzaSyCILPdBn3AT2HuUhhkgxdpyTmBTfFJmqRM"
+#define WIFI_SSID "ICST"
+#define WIFI_PASSWORD "arduino123"
+
+
+FirebaseData fbdo , fbdo_s1;
+FirebaseAuth auth;
+FirebaseConfig config;
+
+#define I2S_WS  25  // LRC pin
+#define I2S_SD  23  // DIN pin
+#define I2S_SCK 26  // BCLK pin
+
+#ifndef _BV
+#define _BV(bit) (1 << (bit))
+#endif
+
+// You can have up to 4 on one i2c bus but one is enough for testing!
+Adafruit_MPR121 cap = Adafruit_MPR121();
+
+
+// Keeps track of the last pins touched
+// so we know when buttons are 'released'
+uint16_t lasttouched = 0;
+uint16_t currtouched = 0;
+
+size_t bytes_written;
+const int sample_count = 1000;
+int16_t samples[sample_count];
+
+void setup() {
+Serial.begin(9600);
+wifi.begin(WIFI_SSID, WIFI_PASSWORLD);
+Serial.println("connecting to wifi");
+while(WiFi.status() != WL_CONNECTED) {
+        delay(200);
+        Serial.print(".")
+  }
+
+  Serial.println();
+  Serial.print("Connected with IP: ");
+  Serial.println(WiFi.localIP());
+  Serial.println();
+
+  Serial.printf("Firebase Client v%s\n\n", FIREBASE_CLIENT_VERSION);
+
+  /* Assign the api key (required) */
+  config.api_key = API_KEY;
+
+  // /* Assign the user sign in credentials */
+  // auth.user.email = USER_EMAIL;
+  // auth.user.password = USER_PASSWORD;
+
+  /* Assign the RTDB URL (required) */
+  config.database_url = DATABASE_URL;
+
+  /* Assign the callback function for the long running token generation task */
+  config.token_status_callback = tokenStatusCallback; // see addons/TokenHelper.h
+  Firebase.begin(&config);
+  Firebase.reconnectWiFi(true);
+  if(!Firebase.RTDB.begin(&fbdo_s1, "/songs/1")){
+    Serial.print("error bha al2she");
+  }
+ 
+  Serial.println("Adafruit MPR121 Capacitive Touch sensor test");
+ 
+  // Default address is 0x5A, if tied to 3.3V its 0x5B
+  // If tied to SDA its 0x5C and if SCL then 0x5D
+  if (!cap.begin(0x5A)) {
+    Serial.println("MPR121 not found, check wiring?");
+    while (1);
+  }
+  Serial.println("MPR121 found!");
+
+  // Configure I2S
+  i2s_config_t i2s_config = {
+    .mode = (i2s_mode_t)(I2S_MODE_MASTER | I2S_MODE_TX),
+    .sample_rate = 44100,
+    .bits_per_sample = I2S_BITS_PER_SAMPLE_16BIT,
+    .channel_format = I2S_CHANNEL_FMT_RIGHT_LEFT,
+    .communication_format = I2S_COMM_FORMAT_I2S,
+    .intr_alloc_flags = 0,
+    .dma_buf_count = 8,
+    .dma_buf_len = 64,
+    .use_apll = false,
+    .tx_desc_auto_clear = true,
+    .fixed_mclk = 0
+  };
+
+  i2s_pin_config_t pin_config = {
+    .bck_io_num = I2S_SCK,
+    .ws_io_num = I2S_WS,
+    .data_out_num = I2S_SD,
+    .data_in_num = I2S_PIN_NO_CHANGE
+  };
+
+  // Install and start I2S driver
+  i2s_driver_install(I2S_NUM_0, &i2s_config, 0, NULL);
+  i2s_set_pin(I2S_NUM_0, &pin_config);
+}
+
+
+
+
+void playDoTone(){
+  float frequency = 261.5;
+  for (int i = 0; i < sample_count; i++) {
+    samples[i] = (int16_t)(32767.0 * cos(2.0 * PI * frequency * ((float)i / 44100.0)));
+  }
+}
+
+void playReTone(){
+  float frequency = 293.5;
+  for (int i = 0; i < sample_count; i++) {
+    samples[i] = (int16_t)(32767.0 * cos(2.0 * PI * frequency * ((float)i / 44100.0)));
+  }
+}
+void playMiTone(){
+  float frequency = 329.5;
+  for (int i = 0; i < sample_count; i++) {
+    samples[i] = (int16_t)(32767.0 * cos(2.0 * PI * frequency * ((float)i / 44100.0)));
+  }
+}
+void playFaTone(){
+  float frequency = 349.00;
+  for (int i = 0; i < sample_count; i++) {
+    samples[i] = (int16_t)(32767.0 * sin(2.0 * PI * frequency * ((float)i / 44100.0)));
+  }
+}
+void playSolTone(){
+  float frequency = 392.00;
+  for (int i = 0; i < sample_count; i++) {
+    samples[i] = (int16_t)(32767.0 * sin(2.0 * PI * frequency * ((float)i / 44100.0)));
+  }
+}
+void playLaTone(){
+  float frequency = 440.00;
+  for (int i = 0; i < sample_count; i++) {
+    samples[i] = (int16_t)(32767.0 * sin(2.0 * PI * frequency * ((float)i / 44100.0)));
+  }
+}
+void playTiTone(){
+  float frequency = 494.00;
+  for (int i = 0; i < sample_count; i++) {
+    samples[i] = (int16_t)(32767.0 * sin(2.0 * PI * frequency * ((float)i / 44100.0)));
+  }
+}
+void playDo2Tone(){
+  float frequency = 523.00;
+  for (int i = 0; i < sample_count; i++) {
+    samples[i] = (int16_t)(32767.0 * sin(2.0 * PI * frequency * ((float)i / 44100.0)));
+  }
+}
+void stopTone(){
+  float frequency = 0.0;
+  for (int i = 0; i < sample_count; i++) {
+    samples[i] = (int16_t)(32767.0 * sin(2.0 * PI * frequency * ((float)i / 44100.0)));
+  }
+}
+
+void playSoundByNum(uint8_t num){
+
+  switch(num){
+    case 1: playDoTone();
+    break;
+    case 2: playReTone();
+    break;
+    case 3: playMiTone();
+    break;
+     case 4: playFaTone();
+    break;
+     case 5: playSolTone();
+    break;
+     case 6: playLaTone();
+    break;
+     case 7: playTiTone();
+    break;
+    case 8: playDo2Tone();
+    break;
+    default: stopTone();
+    break;
+  }
+
+}
+
+void freePlay(){
+  currtouched = cap.touched();
+  for (uint8_t i=0; i<12; i++) {
+    // it if is touched and wasnt touched before, alert!
+    if ((currtouched & _BV(i)) && !(lasttouched & _BV(i)) ) {
+      Serial.print(i); Serial.println(" touched");
+      playSoundByNum(i);
+    }
+    // if it was touched and now isnt, alert!
+    if (!(currtouched & _BV(i)) && (lasttouched & _BV(i)) ) {
+      Serial.print(i); Serial.println(" released");
+       stopTone();
+    }
+  }
+
+  i2s_write(I2S_NUM_0, samples, sizeof(samples), &bytes_written, portMAX_DELAY);
+
+
+  // reset our state
+  lasttouched = currtouched;
+
+
+  // comment out this line for detailed data from the sensor!
+  return;
+ 
+  // debugging info, what
+  Serial.print("\t\t\t\t\t\t\t\t\t\t\t\t\t 0x"); Serial.println(cap.touched(), HEX);
+  Serial.print("Filt: ");
+  for (uint8_t i=0; i<12; i++) {
+    Serial.print(cap.filteredData(i)); Serial.print("\t");
+  }
+  Serial.println();
+  Serial.print("Base: ");
+  for (uint8_t i=0; i<12; i++) {
+    Serial.print(cap.baselineData(i)); Serial.print("\t");
+  }
+  Serial.println();
+ 
+  // put a delay so it isn't overwhelming
+  delay(100);
+  
+}
+unsigned long sendDataPrevMillis = 0;
+void loop() {
+
+ if(Firebase.ready() && (millis()- sendDataPrevMillis > 2000 || sendDataPrevMillis == 0)){
+  sendDataPrevMillis = millis();
+ if (Firebase.RTDB.getString(&fbdo_s1, "/songs/1")) {
+      if (fbdo_s1.dataType() == "string") {
+        String songData = fbdo_s1.stringData();
+        Serial.print("Song Data: ");
+        Serial.println(songData);
+
+        // Parse the songData to determine which tone to play
+        // For example, if songData is "CDE", you can play the corresponding tones
+        for (char& c : songData) {
+          if (c == 'C') playDoTone();
+          else if (c == 'D') playReTone();
+          else if (c == 'M') playMiTone();
+          else if (c == 'F') playFaTone();
+          else if (c == 'S') playSolTone();
+          else if (c == 'L') playLaTone();
+          else if (c == 'T') playTiTone();
+          else if (c == 'D') playDo2Tone();
+          else if (c == ',') playDo2Tone();
+          else if (c == '');
+          i2s_write(I2S_NUM_0, samples, sizeof(samples), &bytes_written, portMAX_DELAY);
+          delay(500); // Delay to differentiate tones
+        }
+      }
+    } else {
+      Serial.print("Error: ");
+      Serial.println(fbdo_s1.errorReason());
+    }
+ }
+}
+
+
