@@ -81,12 +81,44 @@ void playDoTone(){
   }
 }
 
+void playRiTone(){
+  float frequency = 493.88;
+  for (int i = 0; i < sample_count; i++) {
+    samples[i] = (int16_t)(32767.0 * sin(2.0 * PI * frequency * ((float)i / 44100.0)));
+  }
+}
+
+void playMiTone(){
+  float frequency = 523.25;
+  for (int i = 0; i < sample_count; i++) {
+    samples[i] = (int16_t)(32767.0 * sin(2.0 * PI * frequency * ((float)i / 44100.0)));
+  }
+}
+
+
 void stopTone(){
   float frequency = 0.0;
   for (int i = 0; i < sample_count; i++) {
     samples[i] = (int16_t)(32767.0 * sin(2.0 * PI * frequency * ((float)i / 44100.0)));
   }
 }
+
+void playSoundByNum(uint8_t num){
+
+  switch(num){
+    case 1: playDoTone();
+    break;
+    case 2: playRiTone();
+    break;
+    case 3: playMiTone();
+    break;
+    default: stopTone();
+    break;
+  }
+
+}
+
+
 
 void loop() {
   // Get the currently touched pads
@@ -99,17 +131,12 @@ void loop() {
     // it if is touched and wasnt touched before, alert!
     if ((currtouched & _BV(i)) && !(lasttouched & _BV(i)) ) {
       Serial.print(i); Serial.println(" touched");
-      if (i==2) {digitalWrite(27,HIGH);
-      playDoTone();
-           
-      }
+      playSoundByNum(i);
     }
     // if it was touched and now isnt, alert!
     if (!(currtouched & _BV(i)) && (lasttouched & _BV(i)) ) {
       Serial.print(i); Serial.println(" released");
-       if (i==2) {digitalWrite(27,LOW);
        stopTone();
-       }
     }
   }
 
