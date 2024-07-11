@@ -74,28 +74,56 @@ void setup() {
 
 
 
+
 void playDoTone(){
-  float frequency = 440.0;
+  float frequency = 261.5;
   for (int i = 0; i < sample_count; i++) {
-    samples[i] = (int16_t)(32767.0 * sin(2.0 * PI * frequency * ((float)i / 44100.0)));
+    samples[i] = (int16_t)(32767.0 * cos(2.0 * PI * frequency * ((float)i / 44100.0)));
   }
 }
 
-void playRiTone(){
-  float frequency = 493.88;
+void playReTone(){
+  float frequency = 293.5;
   for (int i = 0; i < sample_count; i++) {
-    samples[i] = (int16_t)(32767.0 * sin(2.0 * PI * frequency * ((float)i / 44100.0)));
+    samples[i] = (int16_t)(32767.0 * cos(2.0 * PI * frequency * ((float)i / 44100.0)));
   }
 }
-
 void playMiTone(){
-  float frequency = 523.25;
+  float frequency = 329.5;
+  for (int i = 0; i < sample_count; i++) {
+    samples[i] = (int16_t)(32767.0 * cos(2.0 * PI * frequency * ((float)i / 44100.0)));
+  }
+}
+void playFaTone(){
+  float frequency = 349.00;
   for (int i = 0; i < sample_count; i++) {
     samples[i] = (int16_t)(32767.0 * sin(2.0 * PI * frequency * ((float)i / 44100.0)));
   }
 }
-
-
+void playSolTone(){
+  float frequency = 392.00;
+  for (int i = 0; i < sample_count; i++) {
+    samples[i] = (int16_t)(32767.0 * sin(2.0 * PI * frequency * ((float)i / 44100.0)));
+  }
+}
+void playLaTone(){
+  float frequency = 440.00;
+  for (int i = 0; i < sample_count; i++) {
+    samples[i] = (int16_t)(32767.0 * sin(2.0 * PI * frequency * ((float)i / 44100.0)));
+  }
+}
+void playTiTone(){
+  float frequency = 494.00;
+  for (int i = 0; i < sample_count; i++) {
+    samples[i] = (int16_t)(32767.0 * sin(2.0 * PI * frequency * ((float)i / 44100.0)));
+  }
+}
+void playDo2Tone(){
+  float frequency = 523.00;
+  for (int i = 0; i < sample_count; i++) {
+    samples[i] = (int16_t)(32767.0 * sin(2.0 * PI * frequency * ((float)i / 44100.0)));
+  }
+}
 void stopTone(){
   float frequency = 0.0;
   for (int i = 0; i < sample_count; i++) {
@@ -108,9 +136,19 @@ void playSoundByNum(uint8_t num){
   switch(num){
     case 1: playDoTone();
     break;
-    case 2: playRiTone();
+    case 2: playReTone();
     break;
     case 3: playMiTone();
+    break;
+     case 4: playFaTone();
+    break;
+     case 5: playSolTone();
+    break;
+     case 6: playLaTone();
+    break;
+     case 7: playTiTone();
+    break;
+    case 8: playDo2Tone();
     break;
     default: stopTone();
     break;
