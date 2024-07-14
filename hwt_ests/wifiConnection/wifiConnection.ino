@@ -13,9 +13,10 @@
 #include <ESP32Firebase.h>
 //#include <Arduino.h>
 //#include <Adafruit_NeoPixel.h>
-#define _SSID "Adan:)"          // Your WiFi SSID
+#define _SSID "jamila"          // Your WiFi SSID
 #define _PASSWORD "12345678"      // Your WiFi Password
-#define REFERENCE_URL "https://console.firebase.google.com/u/0/project/iot-pianos24/settings/general"  // Your Firebase project reference url
+#define REFERENCE_URL "https://iot-piano-default-rtdb.firebaseio.com/"  // Your Firebase project reference url
+#define FIREBASE_AUTH "AIzaSyCILPdBn3AT2HuUhhkgxdpyTmBTfFJmqRM"
 
 
 Firebase firebase(REFERENCE_URL);
@@ -29,16 +30,16 @@ void firebaseSetup()
   // Connect to WiFi
   WiFi.begin(_SSID, _PASSWORD);
 
-  // while (WiFi.status() != WL_CONNECTED) {
-  //   delay(500);
-  //   Serial.print("-");
-  // }
-
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print("-");
+  }
+  
 }
 
 int firebaseReadSongNum()
 {
-  int songNum =  firebase.getInt("songNum");
+  int songNum =  firebase.getInt("/SongNum");
   Serial.print("SongNum is:");
   Serial.println(songNum);
   return songNum;
@@ -67,30 +68,9 @@ void setup() {
 /***************************************************************************************************************************************************/
 
 void loop() {
-  // // Get the currently touched pads
-  // currtouched = cap.touched();
 
-  // for (uint8_t i=0; i<12; i++) {
-  //   // it if is touched and wasnt touched before, alert!
-  //   if ((currtouched & _BV(i)) && !(lasttouched & _BV(i)) ) {
-  //     Serial.print(i); Serial.println(" touched");
-  //     playSoundByNum(i);
-  //   }
-  //   // if it was touched and now isnt, alert!
-  //   if (!(currtouched & _BV(i)) && (lasttouched & _BV(i)) ) {
-  //     Serial.print(i); Serial.println(" released");
-  //      stopTone();
-  //   }
-  // }
-
-  // i2s_write(I2S_NUM_0, samples, sizeof(samples), &bytes_written, portMAX_DELAY);
-
-
-  // // reset our state
-  // lasttouched = currtouched;
 
   int num = firebaseReadSongNum();
-  Serial.print(num);
   
 
 
