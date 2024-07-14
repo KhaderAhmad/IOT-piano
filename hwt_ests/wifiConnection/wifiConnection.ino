@@ -1,33 +1,10 @@
 /***************************************************************************************************************************************************/
 /*                                                    includes and defines                                                                         */
 /***************************************************************************************************************************************************/
-
+#include <WiFi.h>
+#include <HTTPClient.h>
 #include <Wire.h>
-#include "Adafruit_MPR121.h"
 #include <Arduino.h>
-#include "driver/i2s.h"
-
-#define I2S_WS  25  // LRC pin
-#define I2S_SD  23  // DIN pin
-#define I2S_SCK 26  // BCLK pin
-
-#ifndef _BV
-#define _BV(bit) (1 << (bit))
-#endif
-
-
-// You can have up to 4 on one i2c bus but one is enough for testing!
-Adafruit_MPR121 cap = Adafruit_MPR121();
-
-
-// Keeps track of the last pins touched
-// so we know when buttons are 'released'
-uint16_t lasttouched = 0;
-uint16_t currtouched = 0;
-
-size_t bytes_written;
-  const int sample_count = 1000;
-  int16_t samples[sample_count];
 
 
 /***************************************************************************************************************************************************/
@@ -36,8 +13,8 @@ size_t bytes_written;
 #include <ESP32Firebase.h>
 //#include <Arduino.h>
 //#include <Adafruit_NeoPixel.h>
-#define _SSID "ICST"          // Your WiFi SSID
-#define _PASSWORD "arduino123"      // Your WiFi Password
+#define _SSID "Adan:)"          // Your WiFi SSID
+#define _PASSWORD "12345678"      // Your WiFi Password
 #define REFERENCE_URL "https://console.firebase.google.com/u/0/project/iot-pianos24/settings/general"  // Your Firebase project reference url
 
 
@@ -52,10 +29,10 @@ void firebaseSetup()
   // Connect to WiFi
   WiFi.begin(_SSID, _PASSWORD);
 
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    Serial.print("-");
-  }
+  // while (WiFi.status() != WL_CONNECTED) {
+  //   delay(500);
+  //   Serial.print("-");
+  // }
 
 }
 
@@ -67,182 +44,21 @@ int firebaseReadSongNum()
   return songNum;
 }
 
-// int firebaseReadSong()
-// {
-//   String songNum =  firebase.getString("songNum");
-//   Serial.print("SongNum is:");
-//   Serial.println(songNum);
-//   return songNum;
-// }
-
-
-
-// //write new song
-// void firebaseWrite(String song)
-// {
-//   bool flag = 1;
-//   while(WiFi.status() != WL_CONNECTED) {
-//     flag = 0;
-//     delay(500);
-//   }
-
-//   String song
-
-
-
-
-//   if(user != "None")
-//   {
-    
-//     String game_name = (game == 0) ? "/memory_game" : "/speed_game";
-//     String user_path = user + game_name + "/level_" + String(level);
-//     int gameNum = firebase.getInt(user_path);
-//     firebase.setInt(user_path, ++gameNum);
-//   }
-// }
-
-
-
 /***************************************************************************************************************************************************/
 /*                                                              setup                                                                              */
 /***************************************************************************************************************************************************/
 
 void setup() {
-  pinMode(27, OUTPUT) ;
-  Serial.begin(9600);
+  // pinMode(27, OUTPUT) ;
+ Serial.begin(9600);
 
 
   while (!Serial) { // needed to keep leonardo/micro from starting too fast!
     delay(10);
   }
  
-  Serial.println("Adafruit MPR121 Capacitive Touch sensor test");
- 
-  // Default address is 0x5A, if tied to 3.3V its 0x5B
-  // If tied to SDA its 0x5C and if SCL then 0x5D
-  if (!cap.begin(0x5A)) {
-    Serial.println("MPR121 not found, check wiring?");
-    while (1);
-  }
-  Serial.println("MPR121 found!");
-
-  // Configure I2S
-  i2s_config_t i2s_config = {
-    .mode = (i2s_mode_t)(I2S_MODE_MASTER | I2S_MODE_TX),
-    .sample_rate = 44100,
-    .bits_per_sample = I2S_BITS_PER_SAMPLE_16BIT,
-    .channel_format = I2S_CHANNEL_FMT_RIGHT_LEFT,
-    .communication_format = I2S_COMM_FORMAT_I2S,
-    .intr_alloc_flags = 0,
-    .dma_buf_count = 8,
-    .dma_buf_len = 64,
-    .use_apll = false,
-    .tx_desc_auto_clear = true,
-    .fixed_mclk = 0
-  };
-
-  i2s_pin_config_t pin_config = {
-    .bck_io_num = I2S_SCK,
-    .ws_io_num = I2S_WS,
-    .data_out_num = I2S_SD,
-    .data_in_num = I2S_PIN_NO_CHANGE
-  };
-
-  // Install and start I2S driver
-  i2s_driver_install(I2S_NUM_0, &i2s_config, 0, NULL);
-  i2s_set_pin(I2S_NUM_0, &pin_config);
-
-
-
 
   firebaseSetup();
-}
-
-
-
-/***************************************************************************************************************************************************/
-/*                                                          PLAYING TONES                                                                          */
-/***************************************************************************************************************************************************/
-
-void playDoTone(){
-  float frequency = 261.5;
-  for (int i = 0; i < sample_count; i++) {
-    samples[i] = (int16_t)(32767.0 * cos(2.0 * PI * frequency * ((float)i / 44100.0)));
-  }
-}
-
-void playReTone(){
-  float frequency = 293.5;
-  for (int i = 0; i < sample_count; i++) {
-    samples[i] = (int16_t)(32767.0 * cos(2.0 * PI * frequency * ((float)i / 44100.0)));
-  }
-}
-void playMiTone(){
-  float frequency = 329.5;
-  for (int i = 0; i < sample_count; i++) {
-    samples[i] = (int16_t)(32767.0 * cos(2.0 * PI * frequency * ((float)i / 44100.0)));
-  }
-}
-void playFaTone(){
-  float frequency = 349.00;
-  for (int i = 0; i < sample_count; i++) {
-    samples[i] = (int16_t)(32767.0 * sin(2.0 * PI * frequency * ((float)i / 44100.0)));
-  }
-}
-void playSolTone(){
-  float frequency = 392.00;
-  for (int i = 0; i < sample_count; i++) {
-    samples[i] = (int16_t)(32767.0 * sin(2.0 * PI * frequency * ((float)i / 44100.0)));
-  }
-}
-void playLaTone(){
-  float frequency = 440.00;
-  for (int i = 0; i < sample_count; i++) {
-    samples[i] = (int16_t)(32767.0 * sin(2.0 * PI * frequency * ((float)i / 44100.0)));
-  }
-}
-void playTiTone(){
-  float frequency = 494.00;
-  for (int i = 0; i < sample_count; i++) {
-    samples[i] = (int16_t)(32767.0 * sin(2.0 * PI * frequency * ((float)i / 44100.0)));
-  }
-}
-void playDo2Tone(){
-  float frequency = 523.00;
-  for (int i = 0; i < sample_count; i++) {
-    samples[i] = (int16_t)(32767.0 * sin(2.0 * PI * frequency * ((float)i / 44100.0)));
-  }
-}
-void stopTone(){
-  float frequency = 0.0;
-  for (int i = 0; i < sample_count; i++) {
-    samples[i] = (int16_t)(32767.0 * sin(2.0 * PI * frequency * ((float)i / 44100.0)));
-  }
-}
-
-void playSoundByNum(uint8_t num){
-
-  switch(num){
-    case 1: playDoTone();
-    break;
-    case 2: playReTone();
-    break;
-    case 3: playMiTone();
-    break;
-     case 4: playFaTone();
-    break;
-     case 5: playSolTone();
-    break;
-     case 6: playLaTone();
-    break;
-     case 7: playTiTone();
-    break;
-    case 8: playDo2Tone();
-    break;
-    default: stopTone();
-    break;
-  }
-
 }
 
 
