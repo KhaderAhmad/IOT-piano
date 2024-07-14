@@ -1,0 +1,79 @@
+/***************************************************************************************************************************************************/
+/*                                                    includes and defines                                                                         */
+/***************************************************************************************************************************************************/
+#include <WiFi.h>
+#include <HTTPClient.h>
+#include <Wire.h>
+#include <Arduino.h>
+
+
+/***************************************************************************************************************************************************/
+/*                                                         WIFI CONNECTION                                                                         */
+/***************************************************************************************************************************************************/
+#include <ESP32Firebase.h>
+//#include <Arduino.h>
+//#include <Adafruit_NeoPixel.h>
+#define _SSID "ICST"          // Your WiFi SSID
+#define _PASSWORD "arduino123"      // Your WiFi Password
+#define REFERENCE_URL "https://iot-piano-default-rtdb.firebaseio.com/"  // Your Firebase project reference url
+
+
+Firebase firebase(REFERENCE_URL);
+
+void firebaseSetup()
+{
+  WiFi.mode(WIFI_STA);
+  WiFi.disconnect();
+  delay(1000);
+
+  // Connect to WiFi
+  WiFi.begin(_SSID, _PASSWORD);
+
+  // while (WiFi.status() != WL_CONNECTED) {
+  //   delay(500);
+  //   Serial.print("-");
+  // }
+
+}
+
+int firebaseReadSongNum()
+{
+  int songNum =  firebase.getInt("songNum");
+  Serial.print("SongNum is:");
+  Serial.println(songNum);
+  return songNum;
+}
+
+/***************************************************************************************************************************************************/
+/*                                                              setup                                                                              */
+/***************************************************************************************************************************************************/
+
+void setup() {
+  // pinMode(27, OUTPUT) ;
+ Serial.begin(9600);
+
+
+  while (!Serial) { // needed to keep leonardo/micro from starting too fast!
+    delay(10);
+  }
+ 
+
+  firebaseSetup();
+}
+
+
+/***************************************************************************************************************************************************/
+/*                                                                loop                                                                             */
+/***************************************************************************************************************************************************/
+
+void loop() {
+
+
+  int num = firebaseReadSongNum();
+  Serial.print(num);
+  
+
+
+  // comment out this line for detailed data from the sensor!
+  return;
+}
