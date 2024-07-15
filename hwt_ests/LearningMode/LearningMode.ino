@@ -1,3 +1,6 @@
+///////// NOT WORKINGGGGGGGGGGGGGGGGGGGGGGGG
+
+
 /***************************************************************************************************************************************************/
 /*                                                    includes and defines                                                                         */
 /***************************************************************************************************************************************************/
@@ -154,44 +157,44 @@ void dacSetup(){
 
 
 void playDoTone(){
-  float frequency = 220.00 *2;
+  float frequency = 261.5;
   for (int i = 0; i < sample_count; i++) {
     samples[i] = (int16_t)(32767.0 * cos(2.0 * PI * frequency * ((float)i / 44100.0)));
   }
 }
 
 void playReTone(){
-  float frequency = 246.94 *2;
+  float frequency = 293.5;
   for (int i = 0; i < sample_count; i++) {
     samples[i] = (int16_t)(32767.0 * cos(2.0 * PI * frequency * ((float)i / 44100.0)));
   }
 }
 void playMiTone(){
-  float frequency =261.63 *2;
+  float frequency = 329.5;
   for (int i = 0; i < sample_count; i++) {
     samples[i] = (int16_t)(32767.0 * cos(2.0 * PI * frequency * ((float)i / 44100.0)));
   }
 }
 void playFaTone(){
-  float frequency = 293.66 *2;
+  float frequency = 349.00;
   for (int i = 0; i < sample_count; i++) {
     samples[i] = (int16_t)(32767.0 * sin(2.0 * PI * frequency * ((float)i / 44100.0)));
   }
 }
 void playSolTone(){
-  float frequency = 329.63 *2;
+  float frequency = 392.00;
   for (int i = 0; i < sample_count; i++) {
     samples[i] = (int16_t)(32767.0 * sin(2.0 * PI * frequency * ((float)i / 44100.0)));
   }
 }
 void playLaTone(){
-  float frequency =349.23 *2;
+  float frequency = 440.00;
   for (int i = 0; i < sample_count; i++) {
     samples[i] = (int16_t)(32767.0 * sin(2.0 * PI * frequency * ((float)i / 44100.0)));
   }
 }
 void playTiTone(){
-  float frequency = 392.00 *2;
+  float frequency = 494.00;
   for (int i = 0; i < sample_count; i++) {
     samples[i] = (int16_t)(32767.0 * sin(2.0 * PI * frequency * ((float)i / 44100.0)));
   }
@@ -262,46 +265,55 @@ int getNumForChar(char num){
 
 void playSongByNum(int num){
   bool correct = true;
+
   String song = firebaseReadSong(num);
   for(int i =0; i< song.length(); i++){
-  playSoundByChar(song[i]);
-  for (int i = 0; i < 10; i++) 
-    i2s_write(I2S_NUM_0, samples, sizeof(samples), &bytes_written, portMAX_DELAY);
+    char note = song[i];
+    
+    if(note == ',')
+      continue;
+
+    playSoundByChar(note);
+    for (int i = 0; i < 10; i++) {
+  i2s_write(I2S_NUM_0, samples, sizeof(samples), &bytes_written, portMAX_DELAY);
+  }
+  correct = waitForTouchAndCheckIfCorrect(song[i]);
+  if(!correct){
+    return;
+  }
   }
 }
 
 
 bool waitForTouchAndCheckIfCorrect(char note){
-  int pin_to_touch = getNumForChar(note);
-   unsigned long startTime = millis();
-   bool corr = true;
-    while (corr) {
-    uint16_t touched = cap.touched(); // Get the touch status
-
-    if (touched & _BV(pin_to_touch)) { // Check if electrode  is touched (shifted by 2)
-      Serial.println("Electrode  touched!");
-      corr = false; // Break the loop if electrode 1 is touched
-    }
-
-    if (millis() - startTime > 3000) { // Check if 3 seconds have passed
-      Serial.println("Error: Electrode not touched within 3 seconds.");
-      corr = false; // Break the loop if 3 seconds have passed
-    }
-
-    delay(100); // Add a small delay to avoid busy-waiting
+  currtouched = cap.touched();
+  while (!currtouched ) {
+    delay(100);
+    currtouched = cap.touched();
   }
-}
+  for (uint8_t i=0; i<12; i++) {
+    // it if is touched and wasnt touched before, alert!
+    if ((currtouched & _BV(i)) && !(lasttouched & _BV(i)) ) {
+      Serial.print(i); Serial.println(" touched");
+      if(i != getNumForChar(note)){
+          Serial.println("you suck");
 
-void learn_song(int song_num){
-  String song = firebaseReadSong(song_num);
-  for(int i = 0 ; i< song.length(); i++){
-    char note = song[i];
-    if(note != ',')
-      waitForTouchAndCheckIfCorrect(note);
+          return false;
+      }
+    }
+    // // if it was touched and now isnt, alert!
+    // if (!(currtouched & _BV(i)) && (lasttouched & _BV(i)) ) {
+    //   Serial.print(i); Serial.println(" released");
+    //   stopTone();
+    // }
   }
+  // reset our state
+  lasttouched = currtouched;
+  Serial.println("correct note go on");
+  delay(1000);
+
+  return true;
 }
-
-
 
 
 
@@ -343,10 +355,9 @@ void loop() {
   int num = firebaseReadSongNum();
   String song1 = firebaseReadSong(1);
   playSongByNum(1);
-  learn_song(1);
+  
   
   String song2 = firebaseReadSong(2);
-
 
 
 
