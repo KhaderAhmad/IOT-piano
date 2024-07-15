@@ -274,17 +274,18 @@ void playSongByNum(int num){
 bool waitForTouchAndCheckIfCorrect(char note){
   int pin_to_touch = getNumForChar(note);
    unsigned long startTime = millis();
-    while (true) {
+   bool corr = true;
+    while (corr) {
     uint16_t touched = cap.touched(); // Get the touch status
 
-    if (touched & __BV(pin_to_touch)) { // Check if electrode  is touched (shifted by 2)
+    if (touched & _BV(pin_to_touch)) { // Check if electrode  is touched (shifted by 2)
       Serial.println("Electrode  touched!");
-      break; // Break the loop if electrode 1 is touched
+      corr = false; // Break the loop if electrode 1 is touched
     }
 
     if (millis() - startTime > 3000) { // Check if 3 seconds have passed
       Serial.println("Error: Electrode not touched within 3 seconds.");
-      break; // Break the loop if 3 seconds have passed
+      corr = false; // Break the loop if 3 seconds have passed
     }
 
     delay(100); // Add a small delay to avoid busy-waiting
