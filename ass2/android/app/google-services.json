@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1080430813128",
+    "project_id": "ass2-cb1cb",
+    "storage_bucket": "ass2-cb1cb.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1080430813128:android:89e3505a89bb399bc16afd",
+        "android_client_info": {
+          "package_name": "com.example.ass2"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB1GPXvfeC1zr0cQ_-go7AmLtPTyiZrPR0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
