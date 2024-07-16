@@ -70,7 +70,11 @@ class _AddSongState extends State<AddSong> {
                       .doc(FirebaseAuth.instance.currentUser!.uid)
                       .update({'songs': widget.songs});
 
-                  Navigator.pop(context);
+                  _showSuccessMessage(context, 'Added successfully');
+
+                  setState(() {
+                    selectedNotes.clear(); // Clear selected notes after submission
+                  });
                 },
                 style: ButtonStyle(
                     backgroundColor: MaterialStateProperty.resolveWith((states) {
@@ -99,6 +103,15 @@ class _AddSongState extends State<AddSong> {
   }
 
   void _showErrorMessage(BuildContext context, String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        duration: Duration(seconds: 3),
+      ),
+    );
+  }
+
+  void _showSuccessMessage(BuildContext context, String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
