@@ -2,11 +2,16 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
-class LearnPage extends StatelessWidget {
+class LearnPage extends StatefulWidget {
   final String songId;
 
   LearnPage({super.key, required this.songId});
 
+  @override
+  _LearnPageState createState() => _LearnPageState();
+}
+
+class _LearnPageState extends State<LearnPage> {
   // Mapping letters back to musical notes
   final Map<String, String> letterToNote = {
     'A': 'Do',
@@ -19,6 +24,8 @@ class LearnPage extends StatelessWidget {
     'H': 'Do2',
   };
 
+  bool _showEasyHardButtons = true; // Control visibility of Easy and Hard buttons
+
   Future<Map<String, dynamic>?> _fetchSongDetails() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return null;
@@ -27,7 +34,7 @@ class LearnPage extends StatelessWidget {
         .collection('users')
         .doc(user.uid)
         .collection('songs')
-        .doc(songId)
+        .doc(widget.songId)
         .get();
 
     return doc.data();
@@ -67,6 +74,9 @@ class LearnPage extends StatelessWidget {
             TextButton(
               child: Text('OK'),
               onPressed: () {
+                setState(() {
+                  _showEasyHardButtons = false; // Hide Easy and Hard buttons
+                });
                 Navigator.of(context).pop();
               },
             ),
@@ -100,6 +110,9 @@ class LearnPage extends StatelessWidget {
             TextButton(
               child: Text('OK'),
               onPressed: () {
+                setState(() {
+                  _showEasyHardButtons = false; // Hide Easy and Hard buttons
+                });
                 Navigator.of(context).pop();
               },
             ),
@@ -114,7 +127,7 @@ class LearnPage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          'Learning $songId',
+          'Learning ${widget.songId}',
           style: const TextStyle(
             fontSize: 28,
             fontWeight: FontWeight.bold,
@@ -155,7 +168,7 @@ class LearnPage extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
-                  'Learning: $songId',
+                  'Learning: ${widget.songId}',
                   style: const TextStyle(
                     fontSize: 36,
                     fontWeight: FontWeight.bold,
@@ -176,63 +189,70 @@ class LearnPage extends StatelessWidget {
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 40),
-                ElevatedButton(
-                  onPressed: () {
-                    _showEasyModePopup(context); // Show Easy mode popup
-                  },
-                  style: ButtonStyle(
-                    backgroundColor:
-                        MaterialStateProperty.resolveWith((states) {
-                      if (states.contains(MaterialState.pressed)) {
-                        return Colors.black26;
-                      }
-                      return const Color(0xFF4B39EF);
-                    }),
-                    shape: MaterialStateProperty.all<RoundedRectangleBorder>(
-                      RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12.0),
+                if (_showEasyHardButtons) // Show Easy and Hard buttons conditionally
+                  Column(
+                    children: [
+                      ElevatedButton(
+                        onPressed: () {
+                          _showEasyModePopup(context); // Show Easy mode popup
+                        },
+                        style: ButtonStyle(
+                          backgroundColor:
+                              MaterialStateProperty.resolveWith((states) {
+                            if (states.contains(MaterialState.pressed)) {
+                              return Colors.black26;
+                            }
+                            return const Color(0xFF4B39EF);
+                          }),
+                          shape:
+                              MaterialStateProperty.all<RoundedRectangleBorder>(
+                            RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12.0),
+                            ),
+                          ),
+                        ),
+                        child: const Text(
+                          'Easy',
+                          style: TextStyle(
+                            color: Color(0xFFF1F4F8),
+                            fontFamily: 'Plus Jakarta Sans',
+                            fontWeight: FontWeight.bold,
+                            fontSize: 24,
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
-                  child: const Text(
-                    'Easy',
-                    style: TextStyle(
-                      color: Color(0xFFF1F4F8),
-                      fontFamily: 'Plus Jakarta Sans',
-                      fontWeight: FontWeight.bold,
-                      fontSize: 24,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 20),
-                ElevatedButton(
-                  onPressed: () {
-                    _showHardModePopup(context); // Show Hard mode popup
-                  },
-                  style: ButtonStyle(
-                    backgroundColor:
-                        MaterialStateProperty.resolveWith((states) {
-                      if (states.contains(MaterialState.pressed)) {
-                        return Colors.black26;
-                      }
-                      return const Color(0xFF4B39EF);
-                    }),
-                    shape: MaterialStateProperty.all<RoundedRectangleBorder>(
-                      RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12.0),
+                      const SizedBox(height: 20),
+                      ElevatedButton(
+                        onPressed: () {
+                          _showHardModePopup(context); // Show Hard mode popup
+                        },
+                        style: ButtonStyle(
+                          backgroundColor:
+                              MaterialStateProperty.resolveWith((states) {
+                            if (states.contains(MaterialState.pressed)) {
+                              return Colors.black26;
+                            }
+                            return const Color(0xFF4B39EF);
+                          }),
+                          shape:
+                              MaterialStateProperty.all<RoundedRectangleBorder>(
+                            RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12.0),
+                            ),
+                          ),
+                        ),
+                        child: const Text(
+                          'Hard',
+                          style: TextStyle(
+                            color: Color(0xFFF1F4F8),
+                            fontFamily: 'Plus Jakarta Sans',
+                            fontWeight: FontWeight.bold,
+                            fontSize: 24,
+                          ),
+                        ),
                       ),
-                    ),
+                    ],
                   ),
-                  child: const Text(
-                    'Hard',
-                    style: TextStyle(
-                      color: Color(0xFFF1F4F8),
-                      fontFamily: 'Plus Jakarta Sans',
-                      fontWeight: FontWeight.bold,
-                      fontSize: 24,
-                    ),
-                  ),
-                ),
               ],
             ),
           );
