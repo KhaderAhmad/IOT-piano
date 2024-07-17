@@ -77,12 +77,14 @@ class _AddSongState extends State<AddSong> {
                     return;
                   }
 
-                  widget.songs[DateTime.now().toString()] = selectedLetters;
+                  String songId = DateTime.now().toString();
 
                   await FirebaseFirestore.instance
                       .collection('users')
                       .doc(FirebaseAuth.instance.currentUser!.uid)
-                      .update({'songs': widget.songs});
+                      .collection('songs')
+                      .doc(songId)
+                      .set({'notes': selectedLetters});
 
                   _showSuccessMessage(context, 'Added successfully');
 

@@ -2,7 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:connectivity/connectivity.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:tracking_board_app/navigation_bar_widgets/show_tasks.dart';
+import 'package:tracking_board_app/navigation_bar_widgets/show_tasks.dart'; // Updated import to show_songs.dart
 import 'package:tracking_board_app/screens/signin_screen.dart';
 
 import '../navigation_bar_widgets/add_task.dart'; // Updated import to add_song.dart
@@ -29,7 +29,7 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _widgetOptions = <Widget>[
-      ShowTasks(vec1: widget.vec1, tasks1: widget.tasks1, name1: widget.name1),
+      ShowSongs(userName: widget.name1), // Updated to ShowSongs
       AddSong(userName: widget.name1, songs: widget.tasks1), // Updated to AddSong
       Progress(vec1: widget.vec1, name1: widget.name1),
       LogOut(name1: widget.name1),
@@ -54,6 +54,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   bool flag = false;
+
   @override
   Widget build(BuildContext context) {
     Future<int> getUsersDocumentSize() async {
@@ -91,10 +92,10 @@ class _HomeScreenState extends State<HomeScreen> {
           items: const [
             BottomNavigationBarItem(
               icon: Icon(
-                Icons.calendar_month,
+                Icons.music_note,
                 size: 30.0,
               ),
-              label: 'Tasks',
+              label: 'Songs', // Updated label
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.add, size: 30.0),
@@ -120,7 +121,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _showConnectionRestoredMessage() {
-    // Show a Snackbar when connection is lost
+    // Show a Snackbar when connection is restored
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         backgroundColor: Colors.green,

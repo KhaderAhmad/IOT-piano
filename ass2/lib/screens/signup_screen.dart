@@ -1,10 +1,10 @@
-import 'package:flutter/services.dart';
-import 'package:tracking_board_app/screens/signin_screen.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:tracking_board_app/reusable_widgets/reusable_widgets.dart';
+import 'package:flutter/services.dart';
 import 'package:tracking_board_app/loading/login.dart';
+import 'package:tracking_board_app/reusable_widgets/reusable_widgets.dart';
+import 'package:tracking_board_app/screens/signin_screen.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -109,7 +109,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
                           'name': _usernameTextController.text,
                           'email': _emailTextController.text,
                           'vec': zeros,
-                          'tasks': {}
+                          'tasks': {},
+                          'songs': {},
+                          'currentSong': {'A,B,C,A,B,C'},
+                          'currentMode': 'freeplay'
                         });
                         Navigator.pushReplacement(
                             context,
