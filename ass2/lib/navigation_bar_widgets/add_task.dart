@@ -18,10 +18,23 @@ class AddSong extends StatefulWidget {
 
 class _AddSongState extends State<AddSong> {
   List<String> selectedNotes = [];
+  List<String> selectedLetters = [];
+
+  // Mapping musical notes to corresponding letters
+  final Map<String, String> noteToLetter = {
+    'Do': 'A',
+    'Re': 'B',
+    'Me': 'C',
+    'Fa': 'D',
+    'Sol': 'E',
+    'La': 'F',
+    'Si': 'G',
+    'Do2': 'H'  // If you want 'Do' to map to 'H' the second time, otherwise map it to 'A' again
+  };
 
   @override
   Widget build(BuildContext context) {
-    List<String> notes = ['Do', 'Re', 'Me', 'Fa', 'Sol', 'La', 'Si', 'Do'];
+    List<String> notes = ['Do', 'Re', 'Me', 'Fa', 'Sol', 'La', 'Si', 'Do2'];
 
     return Scaffold(
       appBar: AppBar(
@@ -44,6 +57,7 @@ class _AddSongState extends State<AddSong> {
                     onPressed: () {
                       setState(() {
                         selectedNotes.add(note);
+                        selectedLetters.add(noteToLetter[note]!);
                       });
                     },
                     child: Text(note),
@@ -63,7 +77,7 @@ class _AddSongState extends State<AddSong> {
                     return;
                   }
 
-                  widget.songs[DateTime.now().toString()] = selectedNotes;
+                  widget.songs[DateTime.now().toString()] = selectedLetters;
 
                   await FirebaseFirestore.instance
                       .collection('users')
@@ -74,6 +88,7 @@ class _AddSongState extends State<AddSong> {
 
                   setState(() {
                     selectedNotes.clear(); // Clear selected notes after submission
+                    selectedLetters.clear(); // Clear selected letters after submission
                   });
                 },
                 style: ButtonStyle(
