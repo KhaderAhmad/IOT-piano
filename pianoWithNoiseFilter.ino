@@ -102,14 +102,14 @@ size_t bytes_written;
 const int sample_count = 256; // Adjust sample count if needed
 int16_t samples[sample_count];
 
-#define AT 230.63
-#define BT 293.66
-#define CT 329.63
-#define DT 349.23
-#define ET 392.00
-#define FT 440.00
-#define GT 493.88
-#define HT 523.25
+#define AT 440.00
+#define BT 493.88
+#define CT 523.26
+#define DT 587.32
+#define ET 659.26
+#define FT 698.46
+#define GT 784.00
+#define HT 880.00
 #define NO 0
 
 
