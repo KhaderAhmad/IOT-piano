@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'learnsongs.dart'; // Import the new page
 
 class ShowSongs extends StatefulWidget {
   final String userName;
@@ -83,6 +84,13 @@ class _ShowSongsState extends State<ShowSongs> {
                         'currentSong': document.id,
                         'currentMode': 'learn'
                       });
+
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => LearnPage(songId: document.id),
+                        ),
+                      );
                     }
                   },
                   style: ButtonStyle(

@@ -19,6 +19,7 @@ class AddSong extends StatefulWidget {
 class _AddSongState extends State<AddSong> {
   List<String> selectedNotes = [];
   List<String> selectedLetters = [];
+  final TextEditingController _songNameController = TextEditingController();
 
   // Mapping musical notes to corresponding letters
   final Map<String, String> noteToLetter = {
@@ -40,7 +41,7 @@ class _AddSongState extends State<AddSong> {
       appBar: AppBar(
         title: Text(
           'Add a new song for ${widget.userName}',
-          style: TextStyle(
+          style: const TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.bold,
               fontFamily: 'Plus Jakarta Sans'),
@@ -50,6 +51,18 @@ class _AddSongState extends State<AddSong> {
         child: SingleChildScrollView(
           child: Column(
             children: [
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: TextField(
+                  controller: _songNameController,
+                  decoration: InputDecoration(
+                    labelText: 'Song Name',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12.0),
+                    ),
+                  ),
+                ),
+              ),
               Wrap(
                 spacing: 10.0,
                 children: notes.map((note) {
@@ -64,33 +77,40 @@ class _AddSongState extends State<AddSong> {
                   );
                 }).toList(),
               ),
-              SizedBox(height: 20),
+              const SizedBox(height: 20),
               Text(
                 'Selected Notes: ${selectedNotes.join(', ')}',
-                style: TextStyle(fontSize: 18),
+                style: const TextStyle(fontSize: 18),
               ),
-              SizedBox(height: 20),
+              const SizedBox(height: 20),
               ElevatedButton(
                 onPressed: () async {
+                  if (_songNameController.text.isEmpty) {
+                    _showErrorMessage(context, 'Please enter a song name.');
+                    return;
+                  }
+
                   if (selectedNotes.isEmpty) {
                     _showErrorMessage(context, 'Please select at least one note.');
                     return;
                   }
 
-                  String songId = DateTime.now().toString();
+                  String songName = _songNameController.text;
+                  String songNotes = selectedLetters.join(','); // Join the letters into a single string
 
                   await FirebaseFirestore.instance
                       .collection('users')
                       .doc(FirebaseAuth.instance.currentUser!.uid)
                       .collection('songs')
-                      .doc(songId)
-                      .set({'notes': selectedLetters});
+                      .doc(songName)
+                      .set({'notes': songNotes}); // Save the string
 
                   _showSuccessMessage(context, 'Added successfully');
 
                   setState(() {
                     selectedNotes.clear(); // Clear selected notes after submission
                     selectedLetters.clear(); // Clear selected letters after submission
+                    _songNameController.clear(); // Clear song name after submission
                   });
                 },
                 style: ButtonStyle(
@@ -98,7 +118,7 @@ class _AddSongState extends State<AddSong> {
                       if (states.contains(MaterialState.pressed)) {
                         return Colors.black26;
                       }
-                      return Color(0xFF4B39EF);
+                      return const Color(0xFF4B39EF);
                     }),
                     shape: MaterialStateProperty.all<RoundedRectangleBorder>(
                         RoundedRectangleBorder(
@@ -123,7 +143,7 @@ class _AddSongState extends State<AddSong> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        duration: Duration(seconds: 3),
+        duration: const Duration(seconds: 3),
       ),
     );
   }
@@ -132,7 +152,7 @@ class _AddSongState extends State<AddSong> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        duration: Duration(seconds: 3),
+        duration: const Duration(seconds: 3),
       ),
     );
   }
