@@ -1,3 +1,7 @@
+/***************************************************************************************************************************************************/
+/*                                                    includes and defines                                                                         */
+/***************************************************************************************************************************************************/
+
 #include <WiFi.h>
 #include <HTTPClient.h>
 #include <Wire.h>
@@ -12,9 +16,22 @@
 #define I2S_SCK 26  // BCLK pin
 #define SAMPLE_RATE 44100
 
+
 #ifndef _BV
 #define _BV(bit) (1 << (bit))
 #endif
+
+
+// VCC: Connect to 3.3V on the ESP32.
+// GND: Connect to GND on the ESP32.
+// SDA: Connect to GPIO 21 (I2C data line) on the ESP32.
+// SCL: Connect to GPIO 22 (I2C clock line) on the ESP32.
+// IRQ: Not necessary for basic functionality but can be connected to an interrupt pin on the ESP32 if needed for advanced features.
+
+
+/***************************************************************************************************************************************************/
+/*                                                         WIFI CONNECTION                                                                         */
+/***************************************************************************************************************************************************/
 
 // WiFi and Firebase setup
 #include <ESP32Firebase.h>
@@ -54,6 +71,13 @@ String firebaseReadSong(int songNum) {
   return song;
 }
 
+
+
+/***************************************************************************************************************************************************/
+/*                                                           MPR121 setup                                                                          */
+/***************************************************************************************************************************************************/
+
+
 // MPR121 setup
 Adafruit_MPR121 cap = Adafruit_MPR121();
 uint16_t lasttouched = 0;
@@ -68,10 +92,26 @@ void mprSetup() {
   Serial.println("MPR121 found!");
 }
 
+
+/***************************************************************************************************************************************************/
+/*                                                         DAC Amplifier setup                                                                     */
+/***************************************************************************************************************************************************/
+
 // DAC Amplifier setup
 size_t bytes_written;
 const int sample_count = 256; // Adjust sample count if needed
 int16_t samples[sample_count];
+
+#define AT 230.63
+#define BT 293.66
+#define CT 329.63
+#define DT 349.23
+#define ET 392.00
+#define FT 440.00
+#define GT 493.88
+#define HT 523.25
+#define NO 0
+
 
 void dacSetup() {
   i2s_config_t i2s_config = {
@@ -99,6 +139,13 @@ void dacSetup() {
   i2s_set_pin(I2S_NUM_0, &pin_config);
 }
 
+
+/***************************************************************************************************************************************************/
+/*                                                           sound functions                                                                       */
+/***************************************************************************************************************************************************/
+
+
+
 // Sound functions
 void generateTone(float frequency) {
   for (int i = 0; i < sample_count; i++) {
@@ -108,15 +155,15 @@ void generateTone(float frequency) {
 
 void playSoundByChar(char note) {
   switch(note) {
-    case 'A': generateTone(261.63); break; // Do
-    case 'B': generateTone(293.66); break; // Re
-    case 'C': generateTone(329.63); break; // Mi
-    case 'D': generateTone(349.23); break; // Fa
-    case 'E': generateTone(392.00); break; // Sol
-    case 'F': generateTone(440.00); break; // La
-    case 'G': generateTone(493.88); break; // Ti
-    case 'H': generateTone(523.25); break; // Do (higher octave)
-    default: generateTone(0); break;       // Silence
+    case 'A': generateTone(AT); break; // Do
+    case 'B': generateTone(BT); break; // Re
+    case 'C': generateTone(CT); break; // Mi
+    case 'D': generateTone(DT); break; // Fa
+    case 'E': generateTone(ET); break; // Sol
+    case 'F': generateTone(FT); break; // La
+    case 'G': generateTone(GT); break; // Ti
+    case 'H': generateTone(HT); break; // Do (higher octave)
+    default: generateTone(NO); break;       // Silence
   }
 }
 
@@ -143,7 +190,12 @@ void playSongByNum(int num) {
     for (int j = 0; j < 100; j++) {
       i2s_write(I2S_NUM_0, samples, sizeof(samples), &bytes_written, portMAX_DELAY);
     }
+    
     delay(200);
+    // correct = waitForTouchAndCheckIfCorrect(song[i]);
+    // if(!correct){
+    //   return;
+    // }
   }
 }
 
@@ -168,6 +220,12 @@ bool waitForTouchAndCheckIfCorrect(char note) {
   return true;
 }
 
+
+/***************************************************************************************************************************************************/
+/*                                                              setup                                                                              */
+/***************************************************************************************************************************************************/
+
+
 void setup() {
   Serial.begin(115200);
   while (!Serial) { delay(10); }
@@ -177,6 +235,13 @@ void setup() {
   delay(1000);
   dacSetup();
 }
+
+
+
+/***************************************************************************************************************************************************/
+/*                                                                loop                                                                             */
+/***************************************************************************************************************************************************/
+
 
 void loop() {
   Serial.println("Running");
