@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 class LearnPage extends StatefulWidget {
   final String songId;
 
-  LearnPage({super.key, required this.songId});
+  LearnPage({Key? key, required this.songId}) : super(key: key);
 
   @override
   _LearnPageState createState() => _LearnPageState();
@@ -44,10 +44,25 @@ class _LearnPageState extends State<LearnPage> {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
 
+    // Update Firebase challenge to "None"
     await FirebaseFirestore.instance
         .collection('users')
         .doc(user.uid)
-        .update({'currentMode': 'freePlay'});
+        .update({'currentMode': 'freePlay', 'challenge': 'None'});
+
+    // Navigate back
+    Navigator.of(context).pop();
+  }
+
+  void _updateCurrentMode(String mode, String challenge) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    // Update Firebase currentMode and challenge
+    await FirebaseFirestore.instance.collection('users').doc(user.uid).update({
+      'currentMode': mode,
+      'challenge': challenge,
+    });
   }
 
   void _showEasyModePopup(BuildContext context) {
@@ -74,6 +89,7 @@ class _LearnPageState extends State<LearnPage> {
             TextButton(
               child: Text('OK'),
               onPressed: () {
+                _updateCurrentMode('learn', 'easy'); // Set currentMode to 'learn' and challenge to 'easy'
                 setState(() {
                   _showEasyHardButtons = false; // Hide Easy and Hard buttons
                 });
@@ -110,6 +126,7 @@ class _LearnPageState extends State<LearnPage> {
             TextButton(
               child: Text('OK'),
               onPressed: () {
+                _updateCurrentMode('learn', 'hard'); // Set currentMode to 'learn' and challenge to 'hard'
                 setState(() {
                   _showEasyHardButtons = false; // Hide Easy and Hard buttons
                 });
@@ -139,7 +156,6 @@ class _LearnPageState extends State<LearnPage> {
           icon: Icon(Icons.arrow_back),
           onPressed: () {
             _switchToFreePlayMode(); // Switch to freePlay mode on back arrow press
-            Navigator.of(context).pop();
           },
         ),
       ),

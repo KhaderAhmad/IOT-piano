@@ -6,7 +6,7 @@ import 'learnsongs.dart'; // Import the new page
 class ShowSongs extends StatefulWidget {
   final String userName;
 
-  const ShowSongs({super.key, required this.userName});
+  const ShowSongs({Key? key, required this.userName});
 
   @override
   State<ShowSongs> createState() => _ShowSongsState();
@@ -64,7 +64,8 @@ class _ShowSongsState extends State<ShowSongs> {
 
           return ListView(
             children: snapshot.data!.docs.map((DocumentSnapshot document) {
-              Map<String, dynamic> song = document.data() as Map<String, dynamic>;
+              Map<String, dynamic> song =
+                  document.data() as Map<String, dynamic>;
               return ListTile(
                 title: Text(
                   document.id,
@@ -77,14 +78,6 @@ class _ShowSongsState extends State<ShowSongs> {
                   onPressed: () async {
                     final user = FirebaseAuth.instance.currentUser;
                     if (user != null) {
-                      await FirebaseFirestore.instance
-                          .collection('users')
-                          .doc(user.uid)
-                          .update({
-                        'currentSong': document.id,
-                        'currentMode': 'learn'
-                      });
-
                       Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -94,7 +87,8 @@ class _ShowSongsState extends State<ShowSongs> {
                     }
                   },
                   style: ButtonStyle(
-                      backgroundColor: MaterialStateProperty.resolveWith((states) {
+                      backgroundColor: MaterialStateProperty.resolveWith(
+                          (states) {
                         if (states.contains(MaterialState.pressed)) {
                           return Colors.black26;
                         }
