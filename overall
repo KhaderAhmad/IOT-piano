@@ -1,6 +1,7 @@
 /***************************************************************************************************************************************************/
 /*                                                    includes and defines                                                                         */
 /***************************************************************************************************************************************************/
+
 #include <WiFi.h>
 #include <HTTPClient.h>
 #include <Wire.h>
@@ -9,15 +10,12 @@
 #include "Adafruit_MPR121.h"
 #include "driver/i2s.h"
 
-
-
-//DEFINES:
-
+// Defines
 #define I2S_WS  25  // LRC pin
 #define I2S_SD  23  // DIN pin
 #define I2S_SCK 26  // BCLK pin
-
 #define SAMPLE_RATE 44100
+
 
 #ifndef _BV
 #define _BV(bit) (1 << (bit))
@@ -34,25 +32,21 @@
 /***************************************************************************************************************************************************/
 /*                                                         WIFI CONNECTION                                                                         */
 /***************************************************************************************************************************************************/
-#include <ESP32Firebase.h>
-//#include <Arduino.h>
-//#include <Adafruit_NeoPixel.h>
-#define _SSID "jamila"          // Your WiFi SSID
-#define _PASSWORD "12345678"      // Your WiFi Password
-#define REFERENCE_URL "https://iot-pianos24-default-rtdb.asia-southeast1.firebasedatabase.app/"  // Your Firebase project reference url
-#define FIREBASE_AUTH "AIzaSyBcIwws7MRvy8MOT7qeqCRUCMmY--rXLCw"
 
+// WiFi and Firebase setup
+#include <ESP32Firebase.h>
+#define _SSID "jamila"          // Your WiFi SSID
+#define _PASSWORD "12345678"    // Your WiFi Password
+#define REFERENCE_URL "https://ass2-cb1cb-default-rtdb.firebaseio.com/"
+#define FIREBASE_AUTH "AIzaSyB1GPXvfeC1zr0cQ_-go7AmLtPTyiZrPR0"
 
 Firebase firebase(REFERENCE_URL);
 
-void firebaseSetup()
-{
+void firebaseSetup() {
   Serial.println("Connecting to WIFI:");
   WiFi.mode(WIFI_STA);
   WiFi.disconnect();
   delay(1000);
-
-  // Connect to WiFi
   WiFi.begin(_SSID, _PASSWORD);
 
   while (WiFi.status() != WL_CONNECTED) {
@@ -60,70 +54,72 @@ void firebaseSetup()
     Serial.print("-");
   }
   Serial.println("Connected to WIFI");
-
-  
 }
 
-int firebaseReadSongNum()
-{
-  int songNum =  firebase.getInt("songNum");
+int firebaseReadSongNum() {
+  int songNum = firebase.getInt("songNum");
   Serial.print("SongNum is:");
   Serial.println(songNum);
   return songNum;
 }
 
-String firebaseReadSong(int songNum){
+String firebaseReadSong(int songNum) {
   String songStr = "/songs/song" + String(songNum);
-  String song =  firebase.getString(songStr);
+  String song = firebase.getString(songStr);
   Serial.print("Song is:");
   Serial.println(song);
   return song;
 }
 
 
+
 /***************************************************************************************************************************************************/
-/*                                                         MPR121 setup                                                                         */
+/*                                                           MPR121 setup                                                                          */
 /***************************************************************************************************************************************************/
+
+
+// MPR121 setup
 Adafruit_MPR121 cap = Adafruit_MPR121();
-
-
-
-// Keeps track of the last pins touched
-// so we know when buttons are 'released'
 uint16_t lasttouched = 0;
 uint16_t currtouched = 0;
 
-
-void mprSetup(){
+void mprSetup() {
   Serial.println("Adafruit MPR121 Capacitive Touch sensor test");
- 
-  // Default address is 0x5A, if tied to 3.3V its 0x5B
-  // If tied to SDA its 0x5C and if SCL then 0x5D
   if (!cap.begin(0x5A)) {
     Serial.println("MPR121 not found, check wiring?");
     while (1);
   }
   Serial.println("MPR121 found!");
-
 }
 
+
 /***************************************************************************************************************************************************/
-/*                                                         DAC Amplifier setup                                                                         */
+/*                                                         DAC Amplifier setup                                                                     */
 /***************************************************************************************************************************************************/
 
+// DAC Amplifier setup
 size_t bytes_written;
-const int sample_count = 1000;
+const int sample_count = 256; // Adjust sample count if needed
 int16_t samples[sample_count];
 
+#define AT 440.00
+#define BT 493.88
+#define CT 523.26
+#define DT 587.32
+#define ET 659.26
+#define FT 698.46
+#define GT 784.00
+#define HT 880.00
+#define NO 0
 
-void dacSetup(){
-  // Configure I2S
+
+void dacSetup() {
   i2s_config_t i2s_config = {
     .mode = (i2s_mode_t)(I2S_MODE_MASTER | I2S_MODE_TX),
-    .sample_rate = 44100,
+    .sample_rate = SAMPLE_RATE,
     .bits_per_sample = I2S_BITS_PER_SAMPLE_16BIT,
     .channel_format = I2S_CHANNEL_FMT_RIGHT_LEFT,
-    .communication_format = I2S_COMM_FORMAT_I2S,
+    .communication_format = I2S_COMM_FORMAT_I2S_MSB,
     .intr_alloc_flags = 0,
     .dma_buf_count = 8,
     .dma_buf_len = 64,
@@ -139,159 +135,168 @@ void dacSetup(){
     .data_in_num = I2S_PIN_NO_CHANGE
   };
 
-  // Install and start I2S driver
   i2s_driver_install(I2S_NUM_0, &i2s_config, 0, NULL);
   i2s_set_pin(I2S_NUM_0, &pin_config);
 }
 
 
-
-
 /***************************************************************************************************************************************************/
-/*                                                              sound functions                                                                              */
+/*                                                           sound functions                                                                       */
 /***************************************************************************************************************************************************/
 
 
 
-void playDoTone(){
-  float frequency = 261.5;
+// Sound functions
+void generateTone(float frequency) {
+  Serial.println(frequency);
   for (int i = 0; i < sample_count; i++) {
-    samples[i] = (int16_t)(32767.0 * cos(2.0 * PI * frequency * ((float)i / 44100.0)));
+    samples[i] = (int16_t)(32767.0 * sin(2.0 * PI * frequency * ((float)i / SAMPLE_RATE)));
   }
 }
 
-void playReTone(){
-  float frequency = 293.5;
-  for (int i = 0; i < sample_count; i++) {
-    samples[i] = (int16_t)(32767.0 * cos(2.0 * PI * frequency * ((float)i / 44100.0)));
-  }
-}
-void playMiTone(){
-  float frequency = 329.5;
-  for (int i = 0; i < sample_count; i++) {
-    samples[i] = (int16_t)(32767.0 * cos(2.0 * PI * frequency * ((float)i / 44100.0)));
-  }
-}
-void playFaTone(){
-  float frequency = 349.00;
-  for (int i = 0; i < sample_count; i++) {
-    samples[i] = (int16_t)(32767.0 * sin(2.0 * PI * frequency * ((float)i / 44100.0)));
-  }
-}
-void playSolTone(){
-  float frequency = 392.00;
-  for (int i = 0; i < sample_count; i++) {
-    samples[i] = (int16_t)(32767.0 * sin(2.0 * PI * frequency * ((float)i / 44100.0)));
-  }
-}
-void playLaTone(){
-  float frequency = 440.00;
-  for (int i = 0; i < sample_count; i++) {
-    samples[i] = (int16_t)(32767.0 * sin(2.0 * PI * frequency * ((float)i / 44100.0)));
-  }
-}
-void playTiTone(){
-  float frequency = 494.00;
-  for (int i = 0; i < sample_count; i++) {
-    samples[i] = (int16_t)(32767.0 * sin(2.0 * PI * frequency * ((float)i / 44100.0)));
-  }
-}
-void playDo2Tone(){
-  float frequency = 523.00;
-  for (int i = 0; i < sample_count; i++) {
-    samples[i] = (int16_t)(32767.0 * sin(2.0 * PI * frequency * ((float)i / 44100.0)));
-  }
-}
-void stopTone(){
-  float frequency = 0.0;
-  for (int i = 0; i < sample_count; i++) {
-    samples[i] = (int16_t)(32767.0 * sin(2.0 * PI * frequency * ((float)i / 44100.0)));
+void playSoundByChar(char note) {
+  switch(note) {
+    case 'A': generateTone(AT); break; // Do
+    case 'B': generateTone(BT); break; // Re
+    case 'C': generateTone(CT); break; // Mi
+    case 'D': generateTone(DT); break; // Fa
+    case 'E': generateTone(ET); break; // Sol
+    case 'F': generateTone(FT); break; // La
+    case 'G': generateTone(GT); break; // Ti
+    case 'H': generateTone(HT); break; // Do (higher octave)
+    default: generateTone(NO); break;       // Silence
   }
 }
 
-void playSoundByChar(char num){
+int getNumForChar(char note) {
+  switch(note) {
+    case 'A': return 0;
+    case 'B': return 1;
+    case 'C': return 2;
+    case 'D': return 3;
+    case 'E': return 4;
+    case 'F': return 5;
+    case 'G': return 6;
+    case 'H': return 7;
+    default: return -1;
+  }
+}
+
+void playSongByNum(int num) {
+  String song = firebaseReadSong(num);
+  for (int i = 0; i < song.length(); i++) {
+    char note = song[i];
+    if (note == ',') continue;
+    playSoundByChar(note);
+    for (int j = 0; j < 100; j++) {
+      i2s_write(I2S_NUM_0, samples, sizeof(samples), &bytes_written, portMAX_DELAY);
+    }
+    
+    delay(200);
+    // correct = waitForTouchAndCheckIfCorrect(song[i]);
+    // if(!correct){
+    //   return;
+    // }
+  }
+}
+
+bool waitForTouchAndCheckIfCorrect(char note) {
+  currtouched = cap.touched();
+  while (!currtouched) {
+    delay(100);
+    currtouched = cap.touched();
+  }
+  for (uint8_t i = 0; i < 12; i++) {
+    if ((currtouched & _BV(i)) && !(lasttouched & _BV(i))) {
+      Serial.print(i); Serial.println(" touched");
+      if (i != getNumForChar(note)) {
+        Serial.println("Incorrect note");
+        return false;
+      }
+    }
+  }
+  lasttouched = currtouched;
+  Serial.println("Correct note");
+  delay(1000);
+  return true;
+}
+
+
+
+void playSoundByNum(uint8_t num){
 
   switch(num){
-    case 'A': playDoTone();
-    break;
-    case 'B': playReTone();
-    break;
-    case 'C': playMiTone();
-    break;
-    case 'D': playFaTone();
-    break;
-    case 'E': playSolTone();
-    break;
-    case 'F': playLaTone();
-    break;
-    case 'G': playTiTone();
-    break;
-    case 'H': playDo2Tone();
-    break;
-    default: stopTone();
-    break;
+    case 0: generateTone(AT); break; // Do
+    case 1: generateTone(BT); break; // Re
+    case 2: generateTone(CT); break; // Mi
+    case 3: generateTone(DT); break; // Fa
+    case 4: generateTone(ET); break; // Sol
+    case 5: generateTone(FT); break; // La
+    case 6: generateTone(GT); break; // Ti
+    case 7: generateTone(HT); break; // Do (higher octave)
+    default: generateTone(NO); break; 
   }
 
 }
 
 
+void freeplay(){
+  // Get the currently touched pads
+  currtouched = cap.touched();
+  for (uint8_t i=0; i<12; i++) {
+    // it if is touched and wasnt touched before, alert!
+    if ((currtouched & _BV(i)) && !(lasttouched & _BV(i)) ) {
+      Serial.print(i); Serial.println(" touched");
+      playSoundByNum(i);
+      
+    }
+    // if it was touched and now isnt, alert!
+    if (!(currtouched & _BV(i)) && (lasttouched & _BV(i)) ) {
+      Serial.print(i); Serial.println(" released");
+       playSoundByNum(-1);
+    }
+    i2s_write(I2S_NUM_0, samples, sizeof(samples), &bytes_written, portMAX_DELAY);
+  }
 
-void playSongByNum(int num){
-  String song = firebaseReadSong(num);
-  for(int i =0; i< song.length(); i++){
-    playSoundByChar(song[i]);
-    for (int i = 0; i < 10; i++) {
-  i2s_write(I2S_NUM_0, samples, sizeof(samples), &bytes_written, portMAX_DELAY);
-  }
-  }
+
+
+  // reset our state
+  lasttouched = currtouched;
+
+
+  // comment out this line for detailed data from the sensor!
+  return;
 }
 
 
+void learning(int songnum){
+  playSongByNum(num);
+}
 
 /***************************************************************************************************************************************************/
 /*                                                              setup                                                                              */
 /***************************************************************************************************************************************************/
 
+
 void setup() {
- Serial.begin(115200);
-
-
-  while (!Serial) { // needed to keep leonardo/micro from starting too fast!
-    delay(10);
-  }
- 
-
+  Serial.begin(115200);
+  while (!Serial) { delay(10); }
   firebaseSetup();
-
   delay(1000);
-
   mprSetup();
-
   delay(1000);
-
   dacSetup();
-
 }
+
 
 
 /***************************************************************************************************************************************************/
 /*                                                                loop                                                                             */
 /***************************************************************************************************************************************************/
 
+
 void loop() {
-  Serial.println("here");
-
-  
-
-  int num = firebaseReadSongNum();
-  String song1 = firebaseReadSong(1);
-  playSongByNum(1);
-  
-  
-  String song2 = firebaseReadSong(2);
-
-
-
-  // comment out this line for detailed data from the sensor!
-  return;
+  // int num = firebaseReadSongNum();
+  // playSongByNum(num);
+  freeplay();
 }
