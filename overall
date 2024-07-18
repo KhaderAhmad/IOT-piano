@@ -211,20 +211,24 @@ int getNumForChar(char note) {
 }
 
 void playSongByNum(int num) {
+  bool correct = true;
   String song = firebaseReadSong(num);
   for (int i = 0; i < song.length(); i++) {
     char note = song[i];
     if (note == ',') continue;
     playSoundByChar(note);
+    lightByChar(note);
     for (int j = 0; j < 100; j++) {
       i2s_write(I2S_NUM_0, samples, sizeof(samples), &bytes_written, portMAX_DELAY);
     }
     
     delay(200);
-    // correct = waitForTouchAndCheckIfCorrect(song[i]);
-    // if(!correct){
-    //   return;
-    // }
+    correct = waitForTouchAndCheckIfCorrect(song[i]);
+    pixels.clear();
+    pixels.show();
+    if(!correct){
+      return;
+    }
   }
 }
 
@@ -232,6 +236,7 @@ bool waitForTouchAndCheckIfCorrect(char note) {
   currtouched = cap.touched();
   while (!currtouched) {
     delay(100);
+    pixels.show();
     currtouched = cap.touched();
   }
   for (uint8_t i = 0; i < 12; i++) {
@@ -305,7 +310,7 @@ void learning(int songnum){
 }
 
 /***************************************************************************************************************************************************/
-/*                                                           sound functions                                                                       */
+/*                                                           light functions                                                                       */
 /***************************************************************************************************************************************************/
 
 void lightByNum(int led_num)
@@ -317,6 +322,18 @@ void lightByNum(int led_num)
     pixels.setPixelColor(led_num, pixels.Color(0, 150, 0));
   }
 }
+
+void lightByChar(char note)
+{
+  int led_num = getNumForChar(note);
+  if(led_num < 0){
+      pixels.clear(); // Set all pixel colors to 'off'
+  } else {
+    pixels.setPixelColor(led_num, pixels.Color(0, 150, 0));
+  }
+}
+
+
 
 /***************************************************************************************************************************************************/
 /*                                                              setup                                                                              */
@@ -349,6 +366,7 @@ void setup() {
 
 void loop() {
   // int num = firebaseReadSongNum();
-  // playSongByNum(num);
-  freeplay();
+   playSongByNum(1);
+  //freeplay();
+  pixels.show();
 }
