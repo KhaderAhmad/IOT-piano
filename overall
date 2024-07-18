@@ -8,6 +8,7 @@
 #include <Arduino.h>
 #include <string.h>
 #include "Adafruit_MPR121.h"
+#include <Adafruit_NeoPixel.h>
 #include "driver/i2s.h"
 
 // Defines
@@ -16,17 +17,27 @@
 #define I2S_SCK 26  // BCLK pin
 #define SAMPLE_RATE 44100
 
+// Which pin on the Arduino is connected to the NeoPixels?
+#define Neo_pin        18 // On Trinket or Gemma, suggest changing this to 1
+
+// How many NeoPixels are attached to the Arduino?
+#define NUMPIXELS 11 // Popular NeoPixel ring size
+
 
 #ifndef _BV
 #define _BV(bit) (1 << (bit))
 #endif
 
+#ifdef __AVR__
+ #include <avr/power.h> // Required for 16 MHz Adafruit Trinket
+#endif
 
 // VCC: Connect to 3.3V on the ESP32.
 // GND: Connect to GND on the ESP32.
 // SDA: Connect to GPIO 21 (I2C data line) on the ESP32.
 // SCL: Connect to GPIO 22 (I2C clock line) on the ESP32.
 // IRQ: Not necessary for basic functionality but can be connected to an interrupt pin on the ESP32 if needed for advanced features.
+
 
 
 /***************************************************************************************************************************************************/
@@ -43,15 +54,16 @@
 Firebase firebase(REFERENCE_URL);
 
 void firebaseSetup() {
-  Serial.println("Connecting to WIFI:");
+  Serial.println("Connecting to WIFI: Pending...");
   WiFi.mode(WIFI_STA);
   WiFi.disconnect();
   delay(1000);
   WiFi.begin(_SSID, _PASSWORD);
 
   while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    Serial.print("-");
+    freeplay();
+    delay(10);
+    //Serial.print("-");
   }
   Serial.println("Connected to WIFI");
 }
@@ -91,6 +103,22 @@ void mprSetup() {
   }
   Serial.println("MPR121 found!");
 }
+
+
+
+/***************************************************************************************************************************************************/
+/*                                                         Neo_PIXEL Setup                                                                         */
+/***************************************************************************************************************************************************/
+
+
+Adafruit_NeoPixel pixels(NUMPIXELS, Neo_pin, NEO_GRB + NEO_KHZ800);
+
+void Neo_setup()
+{
+  Serial.println("aetiing neo_pixel");
+
+}
+
 
 
 /***************************************************************************************************************************************************/
@@ -248,14 +276,17 @@ void freeplay(){
     if ((currtouched & _BV(i)) && !(lasttouched & _BV(i)) ) {
       Serial.print(i); Serial.println(" touched");
       playSoundByNum(i);
+      lightByNum(i);
       
     }
     // if it was touched and now isnt, alert!
     if (!(currtouched & _BV(i)) && (lasttouched & _BV(i)) ) {
       Serial.print(i); Serial.println(" released");
        playSoundByNum(-1);
+       lightByNum(-1);
     }
     i2s_write(I2S_NUM_0, samples, sizeof(samples), &bytes_written, portMAX_DELAY);
+    pixels.show();
   }
 
 
@@ -270,7 +301,21 @@ void freeplay(){
 
 
 void learning(int songnum){
-  playSongByNum(num);
+  playSongByNum(songnum);
+}
+
+/***************************************************************************************************************************************************/
+/*                                                           sound functions                                                                       */
+/***************************************************************************************************************************************************/
+
+void lightByNum(int led_num)
+{
+  
+  if(led_num < 0){
+      pixels.clear(); // Set all pixel colors to 'off'
+  } else {
+    pixels.setPixelColor(led_num, pixels.Color(0, 150, 0));
+  }
 }
 
 /***************************************************************************************************************************************************/
@@ -281,11 +326,18 @@ void learning(int songnum){
 void setup() {
   Serial.begin(115200);
   while (!Serial) { delay(10); }
-  firebaseSetup();
-  delay(1000);
   mprSetup();
   delay(1000);
   dacSetup();
+  delay(1000);
+  Neo_setup();
+  //   #if defined(__AVR_ATtiny85__) && (F_CPU == 16000000)
+  // clock_prescale_set(clock_div_1);
+  // #endif
+  pixels.begin();
+
+  delay(1000);
+  firebaseSetup();
 }
 
 
