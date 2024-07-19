@@ -19,6 +19,9 @@
 
 // Which pin on the Arduino is connected to the NeoPixels?
 #define Neo_pin        18 // On Trinket or Gemma, suggest changing this to 1
+//red for 3v3
+//white for gnd
+//green for 18
 
 // How many NeoPixels are attached to the Arduino?
 #define NUMPIXELS 11 // Popular NeoPixel ring size
