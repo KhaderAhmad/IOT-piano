@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 
 class LearnPage extends StatefulWidget {
@@ -50,6 +51,19 @@ class _LearnPageState extends State<LearnPage> {
         .doc(user.uid)
         .update({'currentMode': 'freePlay', 'challenge': 'None', 'currentSong': 'None'});
 
+    // Update Realtime Database
+    await FirebaseDatabase.instance
+        .reference()
+        .update({'currentSong': 'None'});
+
+    await FirebaseDatabase.instance
+        .reference()
+        .update({'currentMode': 'freePlay'});
+    await FirebaseDatabase.instance
+        .reference()
+        .update({'challenge': 'None'});
+        
+
     // Navigate back
     Navigator.of(context).pop();
   }
@@ -58,12 +72,26 @@ class _LearnPageState extends State<LearnPage> {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
 
-    // Update Firebase currentMode, challenge, and currentSong
+    // Update Firestore currentMode, challenge, and currentSong
     await FirebaseFirestore.instance.collection('users').doc(user.uid).update({
       'currentMode': mode,
       'challenge': challenge,
       'currentSong': mappedNotes, // Update currentSong to the mappedNotes
     });
+
+    // Update Realtime Database currentSong
+    await FirebaseDatabase.instance
+        .reference()
+        .update({'currentSong': mappedNotes});
+
+    await FirebaseDatabase.instance
+        .reference()
+        .update({'currentMode': mode});
+
+    await FirebaseDatabase.instance
+        .reference()
+        .update({'challenge': challenge});
+        
   }
 
   void _showEasyModePopup(BuildContext context) async {
@@ -290,4 +318,3 @@ class _LearnPageState extends State<LearnPage> {
     );
   }
 }
-///work with song notes
