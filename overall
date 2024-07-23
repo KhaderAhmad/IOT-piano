@@ -10,21 +10,22 @@
 #include "Adafruit_MPR121.h"
 #include <Adafruit_NeoPixel.h>
 #include "driver/i2s.h"
+#include <math.h>
 
 // Defines
-#define I2S_WS  25  // LRC pin
-#define I2S_SD  23  // DIN pin
+#define I2S_WS 25   // LRC pin
+#define I2S_SD 23   // DIN pin
 #define I2S_SCK 26  // BCLK pin
 #define SAMPLE_RATE 44100
 
 // Which pin on the Arduino is connected to the NeoPixels?
-#define Neo_pin        18 // On Trinket or Gemma, suggest changing this to 1
+#define Neo_pin 18  // On Trinket or Gemma, suggest changing this to 1
 //red for 3v3
 //white for gnd
 //green for 18
 
 // How many NeoPixels are attached to the Arduino?
-#define NUMPIXELS 11 // Popular NeoPixel ring size
+#define NUMPIXELS 11  // Popular NeoPixel ring size
 
 
 #ifndef _BV
@@ -32,7 +33,7 @@
 #endif
 
 #ifdef __AVR__
- #include <avr/power.h> // Required for 16 MHz Adafruit Trinket
+#include <avr/power.h>  // Required for 16 MHz Adafruit Trinket
 #endif
 
 // VCC: Connect to 3.3V on the ESP32.
@@ -49,8 +50,8 @@
 
 // WiFi and Firebase setup
 #include <ESP32Firebase.h>
-#define _SSID "jamila"          // Your WiFi SSID
-#define _PASSWORD "12345678"    // Your WiFi Password
+#define _SSID "jamila"        // Your WiFi SSID
+#define _PASSWORD "12345678"  // Your WiFi Password
 #define REFERENCE_URL "https://ass2-cb1cb-default-rtdb.firebaseio.com/"
 #define FIREBASE_AUTH "AIzaSyB1GPXvfeC1zr0cQ_-go7AmLtPTyiZrPR0"
 
@@ -63,27 +64,38 @@ void firebaseSetup() {
   delay(1000);
   WiFi.begin(_SSID, _PASSWORD);
 
-  while (WiFi.status() != WL_CONNECTED) {
-    freeplay();
-    delay(10);
-    //Serial.print("-");
-  }
+
+//****************************************************************************************************************************************************************
+//****************************************************************************************************************************************************************
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////remember to put it back
+//****************************************************************************************************************************************************************
+//****************************************************************************************************************************************************************
+
+  // while (WiFi.status() != WL_CONNECTED) {
+  //   freeplay();
+  //   delay(10);
+  //   //Serial.print("-");
+  // }
   Serial.println("Connected to WIFI");
 }
 
-int firebaseReadSongNum() {
-  int songNum = firebase.getInt("songNum");
-  Serial.print("SongNum is:");
-  Serial.println(songNum);
-  return songNum;
-}
 
-String firebaseReadSong(int songNum) {
-  String songStr = "/songs/song" + String(songNum);
+String firebaseReadSong() {
+  String songStr = "/currentSong";
+
   String song = firebase.getString(songStr);
   Serial.print("Song is:");
-  Serial.println(song);
-  return song;
+  Serial.println(songStr);
+  return songStr;
+}
+
+
+String firebaseReadSongDuration() {
+  String durStr = "/currentSongDuration";
+  String song = firebase.getString(durStr);
+  Serial.print("duration is:");
+  Serial.println(durStr);
+  return durStr;
 }
 
 
@@ -102,7 +114,8 @@ void mprSetup() {
   Serial.println("Adafruit MPR121 Capacitive Touch sensor test");
   if (!cap.begin(0x5A)) {
     Serial.println("MPR121 not found, check wiring?");
-    while (1);
+    while (1)
+      ;
   }
   Serial.println("MPR121 found!");
 }
@@ -116,33 +129,29 @@ void mprSetup() {
 
 Adafruit_NeoPixel pixels(NUMPIXELS, Neo_pin, NEO_GRB + NEO_KHZ800);
 
-void Neo_setup()
-{
+void Neo_setup() {
   Serial.println("aetiing neo_pixel");
-
 }
 
 /***************************************************************************************************************************************************/
 /*                                                           light functions                                                                       */
 /***************************************************************************************************************************************************/
 
-void lightByNum(int led_num)
-{
-  
-  if(led_num < 0){
-      pixels.clear(); // Set all pixel colors to 'off'
+void lightByNum(int led_num) {
+
+  if (led_num < 0) {
+    pixels.clear();  // Set all pixel colors to 'off'
   } else {
-    pixels.setPixelColor(led_num, pixels.Color(0, 150, 0));
+    pixels.setPixelColor(led_num, pixels.Color(0, 0,150));
   }
 }
 
-void lightByChar(char note)
-{
+void lightByChar(char note) {
   int led_num = getNumForChar(note);
-  if(led_num < 0){
-      pixels.clear(); // Set all pixel colors to 'off'
+  if (led_num < 0) {
+    pixels.clear();  // Set all pixel colors to 'off'
   } else {
-    pixels.setPixelColor(led_num, pixels.Color(0, 150, 0));
+    pixels.setPixelColor(led_num, pixels.Color(0, 0, 150));
   }
 }
 
@@ -154,94 +163,24 @@ void lightByChar(char note)
 
 // DAC Amplifier setup
 size_t bytes_written;
-const int sample_count = 256; // Adjust sample count if needed
+const int sample_count = 256;  // Adjust sample count if needed
 //int16_t samples[sample_count];
 //int16_t* samples;
 
-#define AT 220.00
-#define BT 246.94
-#define CT 261.63
-#define DT 293.66
-#define ET 329.63
-#define FT 349.23
-#define GT 392.00
-#define HT 440.00
+#define AT 261.63
+#define BT 293.66
+#define CT 329.63
+#define DT 349.23
+#define ET 392.00
+#define FT 440.00
+#define GT 493.88
+#define HT 523.25
 #define NO 0
-
-#define sizeA 200
-#define sizeB 178
-#define sizeC 168
-#define sizeD 150
-#define sizeE 134
-#define sizeF 126
-#define sizeG 112
-#define sizeH 100
-
-
-int16_t samplesA[sizeA];
-int16_t samplesB[sizeB];
-int16_t samplesC[sizeC];
-int16_t samplesD[sizeD];
-int16_t samplesE[sizeE];
-int16_t samplesF[sizeF];
-int16_t samplesG[sizeG];
-int16_t samplesH[sizeH];
-int16_t samplesNo[1000];
-
-
 #define I2S_PORT I2S_NUM_0
 
-void fillFreq(){
-
-  for (int i = 0; i < sizeA; i++) {
-    float sample = sin(2 * PI * AT * i / SAMPLE_RATE);
-    samplesA[i] = (int16_t)(sample * 32767);
-  }
-
-  for (int i = 0; i < sizeB; i++) {
-    float sample = sin(2 * PI * BT * i / SAMPLE_RATE);
-    samplesB[i] = (int16_t)(sample * 32767);
-  }
-
-  for (int i = 0; i < sizeC; i++) {
-    float sample = sin(2 * PI * CT * i / SAMPLE_RATE);
-    samplesC[i] = (int16_t)(sample * 32767);
-  }
-
-  for (int i = 0; i < sizeD; i++) {
-    float sample = sin(2 * PI * DT * i / SAMPLE_RATE);
-    samplesD[i] = (int16_t)(sample * 32767);
-  }
-
-  for (int i = 0; i < sizeE; i++) {
-    float sample = sin(2 * PI * ET * i / SAMPLE_RATE);
-    samplesE[i] = (int16_t)(sample * 32767);
-  }
-
-  for (int i = 0; i < sizeF; i++) {
-    float sample = sin(2 * PI * FT * i / SAMPLE_RATE);
-    samplesF[i] = (int16_t)(sample * 32767);
-  }
-
-  for (int i = 0; i < sizeG; i++) {
-    float sample = sin(2 * PI * GT * i / SAMPLE_RATE);
-    samplesG[i] = (int16_t)(sample * 32767);
-  }
-
-  for (int i = 0; i < sizeH; i++) {
-    float sample = sin(2 * PI * HT * i / SAMPLE_RATE);
-    samplesH[i] = (int16_t)(sample * 32767);
-  }
-
-  for (int i = 0; i < 1000; i++) {
-    samplesNo[i] = 0;
-  }
-
-
-}
 
 void dacSetup() {
-    // I2S configuration
+  // I2S configuration
   i2s_config_t i2s_config = {
     .mode = (i2s_mode_t)(I2S_MODE_MASTER | I2S_MODE_TX),
     .sample_rate = SAMPLE_RATE,
@@ -258,9 +197,9 @@ void dacSetup() {
 
   // I2S pin configuration
   i2s_pin_config_t pin_config = {
-    .bck_io_num = 26,   // Bit Clock (BCK)
-    .ws_io_num = 25,    // Word Select (WS)
-    .data_out_num = 23, // Data Out (DOUT)
+    .bck_io_num = 26,    // Bit Clock (BCK)
+    .ws_io_num = 25,     // Word Select (WS)
+    .data_out_num = 23,  // Data Out (DOUT)
     .data_in_num = I2S_PIN_NO_CHANGE
   };
 
@@ -268,8 +207,6 @@ void dacSetup() {
   i2s_driver_install(I2S_PORT, &i2s_config, 0, NULL);
   i2s_set_pin(I2S_PORT, &pin_config);
   i2s_zero_dma_buffer(I2S_PORT);
-
-  fillFreq();
 }
 
 
@@ -281,58 +218,36 @@ void dacSetup() {
 void playTone(float frequency) {
   const int sampleCount = SAMPLE_RATE / frequency;
   int16_t samples[sampleCount];
-  
   for (int i = 0; i < sampleCount; i++) {
     float sample = sin(2 * PI * frequency * i / SAMPLE_RATE);
     samples[i] = (int16_t)(sample * 32767);
   }
-
   size_t bytesWritten;
-    for(int i=0; i<(SAMPLE_RATE / sampleCount)/3 ;i++)
-    {i2s_write(I2S_PORT, samples, sampleCount * sizeof(int16_t), &bytesWritten, portMAX_DELAY);
-    }
+  for (int i = 0; i < (SAMPLE_RATE / sampleCount) / 3; i++) {
+    i2s_write(I2S_PORT, samples, sampleCount * sizeof(int16_t), &bytesWritten, portMAX_DELAY);
+  }
 }
 
 
-// Sound functions
-void generateTone(float frequency) {
-
-
-}
-
-
-
-
-void playSoundByChar(char note) {
-  float freq = 0.0;
-  switch(note) {
-    case 'A': freq=AT ; break; // Do
-    case 'B': freq=BT; break; // Re
-    case 'C': freq=CT; break; // Mi
-    case 'D': freq=DT; break; // Fa
-    case 'E': freq=ET; break; // Sol
-    case 'F': freq=FT; break; // La
-    case 'G': freq=GT; break; // Ti
-    case 'H': freq=HT; break; // Do (higher octave)
-    default: freq=NO; break;       // Silence
+float getFreqForChar(char note)
+{
+   float freq = 0.0;
+  switch (note) {
+    case 'A': freq = AT; break;  // Do
+    case 'B': freq = BT; break;  // Re
+    case 'C': freq = CT; break;  // Mi
+    case 'D': freq = DT; break;  // Fa
+    case 'E': freq = ET; break;  // Sol
+    case 'F': freq = FT; break;  // La
+    case 'G': freq = GT; break;  // Ti
+    case 'H': freq = HT; break;  // Do (higher octave)
+    default: freq = NO; break;   // Silence
   }
-
-  const int sampleCount = int(SAMPLE_RATE / freq);
-  int16_t samplesS[sampleCount];
-  
-  for (int i = 0; i < sampleCount; i++) {
-    float sample = sin(2 * PI * freq * i / SAMPLE_RATE);
-    samplesS[i] = (int16_t)(sample * 32767);
-  }
-
-  size_t bytesWritten;
-  for (int i = 0; i < SAMPLE_RATE / sampleCount; i++) {
-    i2s_write(I2S_PORT, samplesS, sampleCount * sizeof(int16_t), &bytesWritten, portMAX_DELAY);
-  }
+return freq;
 }
 
 int getNumForChar(char note) {
-  switch(note) {
+  switch (note) {
     case 'A': return 0;
     case 'B': return 1;
     case 'C': return 2;
@@ -345,26 +260,57 @@ int getNumForChar(char note) {
   }
 }
 
-void playSongByNum(int num) {
-  bool correct = true;
-  String song = firebaseReadSong(num);
-  for (int i = 0; i < song.length(); i++) {
-    char note = song[i];
-    if (note == ',') continue;
-     lightByChar(note);
-         pixels.show();
 
+
+void playSoundByChar(char note) {
+  float freq = getFreqForChar(note);
+
+  // const int sampleCount = int(SAMPLE_RATE / freq);
+  // int16_t samplesS[sampleCount];
+
+  // for (int i = 0; i < sampleCount; i++) {
+  //   float sample = sin(2 * PI * freq * i / SAMPLE_RATE);
+  //   samplesS[i] = (int16_t)(sample * 32767);
+  // }
+
+  // size_t bytesWritten;
+  // for (int i = 0; i < SAMPLE_RATE / sampleCount; i++) {
+  //   i2s_write(I2S_PORT, samplesS, sampleCount * sizeof(int16_t), &bytesWritten, portMAX_DELAY);
+  // }
+}
+
+
+
+void playSongByNum() {
+  bool correct = true;
+  String song = "A,B,C,D";
+  String dur = "500,1000,500,1000";
+    // String song = firebaseReadSong();
+  // String dur = firebaseReadSongDuration();
+  int num = 0;
+  String strduration = "";
+  for (int i = 0; i < song.length(); i++) {
+    strduration = "";
+    char note = song[i];
+
+    if (note == ',') continue;
+    Serial.println(song[i]);
+    while (dur[num] != ',' && dur[num]!= NULL) {
+      Serial.println("in while");
+      strduration += dur[num];
+      num++;
+    }
+    num++;
+   int Notedur = strduration.toInt();
+
+    lightByChar(note);  //// trun on
+    pixels.show();
     playSoundByChar(note);
-   
-    // for (int j = 0; j < 100; j++) {
-    //   i2s_write(I2S_NUM_0, samples, sizeof(samples), &bytes_written, portMAX_DELAY);
-    // }
-    
-    delay(200);
+  
     correct = waitForTouchAndCheckIfCorrect(song[i]);
     pixels.clear();
     pixels.show();
-    if(!correct){
+    if (!correct) {
       return;
     }
   }
@@ -379,7 +325,9 @@ bool waitForTouchAndCheckIfCorrect(char note) {
   }
   for (uint8_t i = 0; i < 12; i++) {
     if ((currtouched & _BV(i)) && !(lasttouched & _BV(i))) {
-      Serial.print(i); Serial.println(" touched");
+      Serial.print(i);
+      Serial.println(" touched");
+      while_touched_play_sound_for_freeplay(i);
       if (i != getNumForChar(note)) {
         Serial.println("Incorrect note");
         return false;
@@ -388,146 +336,57 @@ bool waitForTouchAndCheckIfCorrect(char note) {
   }
   lasttouched = currtouched;
   Serial.println("Correct note");
-  delay(1000);
   return true;
 }
 
 
+/***************************************************************************************************************************************************/
+/*                                                           freeplay functions                                                                       */
+/***************************************************************************************************************************************************/
 
-void playSoundByNum(uint8_t num){
-  size_t bytesWritten;
-
-  switch(num){
-    case 0: i2s_write(I2S_PORT, samplesA, sizeof(samplesA), &bytes_written, portMAX_DELAY); break; // Do
-    case 1: i2s_write(I2S_PORT, samplesB, sizeof(samplesB), &bytes_written, portMAX_DELAY); break; // Re
-    case 2: i2s_write(I2S_PORT, samplesC, sizeof(samplesC), &bytes_written, portMAX_DELAY); break; // Mi
-    case 3: i2s_write(I2S_PORT, samplesD, sizeof(samplesD), &bytes_written, portMAX_DELAY); break; // Fa
-    case 4: i2s_write(I2S_PORT, samplesE, sizeof(samplesE), &bytes_written, portMAX_DELAY); break; // Sol
-    case 5: i2s_write(I2S_PORT, samplesF, sizeof(samplesF), &bytes_written, portMAX_DELAY); break; // La
-    case 6: i2s_write(I2S_PORT, samplesG, sizeof(samplesG), &bytes_written, portMAX_DELAY); break; // Ti
-    case 7: i2s_write(I2S_PORT, samplesH, sizeof(samplesH), &bytes_written, portMAX_DELAY); break; // Do (higher octave)
-    default: i2s_write(I2S_PORT, samplesNo, sizeof(samplesNo), &bytes_written, portMAX_DELAY); break; 
+void while_touched_play_sound_for_freeplay(uint8_t i) {
+  while (((cap.touched()) & _BV(i))) {
+    lightByNum(i);
+    pixels.show();
+    switch (i) {
+      case 0: playTone(261.63); break;  //DO
+      case 1: playTone(293.66); break;  //RE
+      case 2: playTone(329.63); break;  //MI
+      case 3: playTone(349.23); break;  //FA
+      case 4: playTone(392.00); break;  //SOL
+      case 5: playTone(440.00); break;  //LA
+      case 6: playTone(493.88); break;  //SI
+      case 7: playTone(523.25); break;  // Do (higher octave)
+      default: playTone(0.0); break;
+    }
   }
-
 }
-
-void freeplay(){
+void freeplay() {
+  Serial.println("in freeplay");
   // Get the currently touched pads
   currtouched = cap.touched();
-  
-  for (uint8_t i=0; i<12; i++) 
-  {
+
+  for (uint8_t i = 0; i < 12; i++) {
     // it if is touched and wasnt touched before, alert!
-    if ((currtouched & _BV(i)) && !(lasttouched & _BV(i)) )
-     {
-    
-       Serial.print(i); Serial.println(" touched");
-       
-      if(i==1)
-       { 
-        Serial.println(" 1 touched ");
-       while ((( cap.touched()) & _BV(i))){
-         lightByNum(i); 
-           pixels.show();
-      playTone(293.66); 
-       
-           }
-      }
-      if(i==2) 
-      {
-         while ((( cap.touched()) & _BV(i))){
-           lightByNum(i); 
-           pixels.show();
-       playTone(329.63);
-      
-       }
-      }
-      if(i==3)
-       {
-         while ((( cap.touched()) & _BV(i))){
-            lightByNum(i); 
-           pixels.show();
-       playTone(349.23);
-     
-        // S
-      }}
-      if(i==4)
-       {
-          while ((( cap.touched()) & _BV(i))){
-            lightByNum(i); 
-           pixels.show();
-           playTone(392.00);
-          
-           // S
-           }
-       } 
-      if(i==5)
-       {
-          while ((( cap.touched()) & _BV(i))){
-            lightByNum(i); 
-           pixels.show();
-       playTone(440.00);
-        
-        // S
-       }
-       } 
-        if(i==6)
-         {
-          while ((( cap.touched()) & _BV(i))){
-             lightByNum(i); 
-           pixels.show();
-             playTone(493.88);
-           
-        // S
-          }
-              } 
-           if(i==7)
-          {
-                   while ((( cap.touched()) & _BV(i))){
-                    lightByNum(i); 
-                     pixels.show(); 
-                 playTone(523.25);
-                     }
-           }
-         if(i==0) {
-               while ((( cap.touched()) & _BV(i)))
-                    {
-                         lightByNum(i); 
-                     pixels.show(); 
-                        playTone(261.63);
-                     
-                     } // if it was touched and now isnt, alert!
-           }   
-
-      
-     
-     
- 
+    if ((currtouched & _BV(i)) && !(lasttouched & _BV(i))) {
+      Serial.print(i);
+      Serial.println(" touched");
+      while_touched_play_sound_for_freeplay(i);
     }
-if (!(currtouched & _BV(i)) && (lasttouched & _BV(i)) ) {
-      Serial.print(i); Serial.println(" released");
-     
-       lightByNum(-1); }
-    
+    if (!(currtouched & _BV(i)) && (lasttouched & _BV(i))) {
+      Serial.print(i);
+      Serial.println(" released");
+      lightByNum(-1);
+    }
     pixels.show();
-  
-  // reset our state
-
-
-
-  // comment out this line for detailed data from the sensor!
-
- }
-   lasttouched = currtouched;
- return;
+  }
+  lasttouched = currtouched;
+  return;
 }
 
-void learning(int songnum){
-  playSongByNum(songnum);
-}
-
-
-
+// void learning(int songnum) {
+//   playSongByNum(songnum);
+// }
 
 
 /***************************************************************************************************************************************************/
@@ -547,7 +406,6 @@ void setup() {
   // clock_prescale_set(clock_div_1);
   // #endif
   pixels.begin();
-
   delay(1000);
   firebaseSetup();
 }
@@ -560,8 +418,8 @@ void setup() {
 
 
 void loop() {
-  int num = firebaseReadSongNum();
-  playSongByNum(1);
-  // freeplay();
+
+  playSongByNum();
+  //freeplay();
   pixels.show();
 }
