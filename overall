@@ -351,8 +351,11 @@ void playSongByNum(int num) {
   for (int i = 0; i < song.length(); i++) {
     char note = song[i];
     if (note == ',') continue;
+     lightByChar(note);
+         pixels.show();
+
     playSoundByChar(note);
-    lightByChar(note);
+   
     // for (int j = 0; j < 100; j++) {
     //   i2s_write(I2S_NUM_0, samples, sizeof(samples), &bytes_written, portMAX_DELAY);
     // }
@@ -424,67 +427,75 @@ void freeplay(){
        { 
         Serial.println(" 1 touched ");
        while ((( cap.touched()) & _BV(i))){
-      playTone(293.66); 
-        lightByNum(i); 
+         lightByNum(i); 
            pixels.show();
+      playTone(293.66); 
+       
            }
       }
       if(i==2) 
       {
          while ((( cap.touched()) & _BV(i))){
-       playTone(329.63);
-       lightByNum(i); 
+           lightByNum(i); 
            pixels.show();
+       playTone(329.63);
+      
        }
       }
       if(i==3)
        {
          while ((( cap.touched()) & _BV(i))){
-       playTone(349.23);
-       lightByNum(i); 
+            lightByNum(i); 
            pixels.show();
+       playTone(349.23);
+     
         // S
       }}
       if(i==4)
        {
           while ((( cap.touched()) & _BV(i))){
-           playTone(392.00);
-          lightByNum(i); 
+            lightByNum(i); 
            pixels.show();
+           playTone(392.00);
+          
            // S
            }
        } 
       if(i==5)
        {
           while ((( cap.touched()) & _BV(i))){
-       playTone(440.00);
-        lightByNum(i); 
+            lightByNum(i); 
            pixels.show();
+       playTone(440.00);
+        
         // S
        }
        } 
         if(i==6)
          {
           while ((( cap.touched()) & _BV(i))){
-             playTone(493.88);
-            lightByNum(i); 
+             lightByNum(i); 
            pixels.show();
+             playTone(493.88);
+           
         // S
           }
               } 
            if(i==7)
           {
                    while ((( cap.touched()) & _BV(i))){
-                 playTone(523.25);
                     lightByNum(i); 
-                     pixels.show();  }
+                     pixels.show(); 
+                 playTone(523.25);
+                     }
            }
          if(i==0) {
                while ((( cap.touched()) & _BV(i)))
                     {
-                        playTone(261.63);
-                        lightByNum(i); 
+                         lightByNum(i); 
                      pixels.show(); 
+                        playTone(261.63);
+                     
                      } // if it was touched and now isnt, alert!
            }   
 
