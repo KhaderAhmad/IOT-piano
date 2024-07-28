@@ -139,6 +139,15 @@ void lightByNum(int led_num) {
   }
 }
 
+void lightNextByNum(int led_num) {
+
+  if (led_num < 0) {
+    pixels.clear();  // Set all pixel colors to 'off'
+  } else {
+    pixels.setPixelColor(led_num, pixels.Color(255, 255, 0));
+  }
+}
+
 void turnOffByNum(int led_num) {
 
   if (led_num < 0) {
@@ -341,7 +350,7 @@ bool waitForTouchAndCheckIfCorrect(char note, char next, uint16_t dur) {
       Serial.print(i);
       Serial.println(" touched");
       int correctNote = getNumForChar(note);
-      while_touched_play_sound_for_learning(i, next, dur, correctNote);
+      while_touched_play_sound_for_learning(i, getNumForChar(next), dur, correctNote);
       if (i != correctNote) {
         Serial.println("Incorrect note");
         return false;
@@ -354,7 +363,7 @@ bool waitForTouchAndCheckIfCorrect(char note, char next, uint16_t dur) {
 }
 
 
-void while_touched_play_sound_for_learning(uint8_t i, char next, uint16_t dur, int correctNote) {
+void while_touched_play_sound_for_learning(uint8_t i, int next, uint16_t dur, int correctNote) {
   unsigned long startMillis = millis();
   while (((cap.touched()) & _BV(i)) ) {
     unsigned long curMillis = millis() - startMillis;
@@ -364,9 +373,11 @@ void while_touched_play_sound_for_learning(uint8_t i, char next, uint16_t dur, i
       lightByNum(next);
     }else{
       if(i == correctNote){
+      lightNextByNum(next);
       lightByNum(i);
             Serial.println("NOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO in if baby");
       }else{
+        lightNextByNum(next);
         turnOffByNum(i);
       }
 
