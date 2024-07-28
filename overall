@@ -148,6 +148,7 @@ void lightNextByNum(int led_num) {
   }
 }
 
+
 void turnOffByNum(int led_num) {
 
   if (led_num < 0) {
@@ -364,6 +365,8 @@ bool waitForTouchAndCheckIfCorrect(char note, char next, uint16_t dur) {
 
 
 void while_touched_play_sound_for_learning(uint8_t i, int next, uint16_t dur, int correctNote) {
+  int green= 0;
+  int red = 0;
   unsigned long startMillis = millis();
   while (((cap.touched()) & _BV(i)) ) {
     unsigned long curMillis = millis() - startMillis;
@@ -373,8 +376,12 @@ void while_touched_play_sound_for_learning(uint8_t i, int next, uint16_t dur, in
       lightByNum(next);
     }else{
       if(i == correctNote){
+        green = (int)((float)((float)128 * (float)(millis()/(float)(dur + startMillis))));
+        Serial.println(green);
+        pixels.setPixelColor(i, pixels.Color(150 - green, green, 0));
+
       lightNextByNum(next);
-      lightByNum(i);
+      //lightByNum(i);
             Serial.println("NOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO in if baby");
       }else{
         lightNextByNum(next);
