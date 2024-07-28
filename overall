@@ -71,11 +71,11 @@ void firebaseSetup() {
 //****************************************************************************************************************************************************************
 //****************************************************************************************************************************************************************
 
-  // while (WiFi.status() != WL_CONNECTED) {
-  //   freeplay();
-  //   delay(10);
-  //   //Serial.print("-");
-  // }
+   while (WiFi.status() != WL_CONNECTED) {
+    freeplay();
+   delay(10);
+  Serial.print("-");
+  }
   Serial.println("Connected to WIFI");
 }
 
@@ -223,7 +223,7 @@ void playTone(float frequency) {
     samples[i] = (int16_t)(sample * 32767);
   }
   size_t bytesWritten;
-  for (int i = 0; i < (SAMPLE_RATE / sampleCount) / 3; i++) {
+  for (int i = 0; i < (SAMPLE_RATE / sampleCount) / 4; i++) {
     i2s_write(I2S_PORT, samples, sampleCount * sizeof(int16_t), &bytesWritten, portMAX_DELAY);
   }
 }
@@ -284,9 +284,9 @@ void playSoundByChar(char note) {
 void playSongByNum() {
   bool correct = true;
   String song = "A,B,C,D";
-  String dur = "500,1000,500,1000";
-    // String song = firebaseReadSong();
-  // String dur = firebaseReadSongDuration();
+ // String dur = "500,1000,500,1000";
+  String song = firebaseReadSong();
+ // String dur = firebaseReadSongDuration();
   int num = 0;
   String strduration = "";
   for (int i = 0; i < song.length(); i++) {
@@ -306,7 +306,7 @@ void playSongByNum() {
     lightByChar(note);  //// trun on
     pixels.show();
     playSoundByChar(note);
-  
+
     correct = waitForTouchAndCheckIfCorrect(song[i]);
     pixels.clear();
     pixels.show();
@@ -339,7 +339,6 @@ bool waitForTouchAndCheckIfCorrect(char note) {
   return true;
 }
 
-
 /***************************************************************************************************************************************************/
 /*                                                           freeplay functions                                                                       */
 /***************************************************************************************************************************************************/
@@ -357,12 +356,14 @@ void while_touched_play_sound_for_freeplay(uint8_t i) {
       case 5: playTone(440.00); break;  //LA
       case 6: playTone(493.88); break;  //SI
       case 7: playTone(523.25); break;  // Do (higher octave)
+      case 8: playTone(552.37); break;
+      case 9: playTone(581.55); break;
       default: playTone(0.0); break;
     }
   }
 }
 void freeplay() {
-  Serial.println("in freeplay");
+  //Serial.println("in freeplay");
   // Get the currently touched pads
   currtouched = cap.touched();
 
@@ -392,8 +393,6 @@ void freeplay() {
 /***************************************************************************************************************************************************/
 /*                                                              setup                                                                              */
 /***************************************************************************************************************************************************/
-
-
 void setup() {
   Serial.begin(115200);
   while (!Serial) { delay(10); }
@@ -419,7 +418,7 @@ void setup() {
 
 void loop() {
 
-  playSongByNum();
-  //freeplay();
-  pixels.show();
+  //playSongByNum();
+ freeplay();
+ // pixels.show();
 }
