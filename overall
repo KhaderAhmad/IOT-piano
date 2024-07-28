@@ -58,25 +58,18 @@
 Firebase firebase(REFERENCE_URL);
 
 void firebaseSetup() {
-  Serial.println("Connecting to WIFI: Pending...");
-  WiFi.mode(WIFI_STA);
-  WiFi.disconnect();
-  delay(1000);
-  WiFi.begin(_SSID, _PASSWORD);
+  // Serial.println("Connecting to WIFI: Pending...");
+  // WiFi.mode(WIFI_STA);
+  // WiFi.disconnect();
+  // delay(1000);
+  // WiFi.begin(_SSID, _PASSWORD);
 
-
-//****************************************************************************************************************************************************************
-//****************************************************************************************************************************************************************
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////remember to put it back
-//****************************************************************************************************************************************************************
-//****************************************************************************************************************************************************************
-
-   while (WiFi.status() != WL_CONNECTED) {
-    freeplay();
-   delay(10);
-  Serial.print("-");
-  }
-  Serial.println("Connected to WIFI");
+  //  while (WiFi.status() != WL_CONNECTED) {
+  //   freeplay();
+  //  delay(10);
+  // Serial.print("-");
+  // }
+  // Serial.println("Connected to WIFI");
 }
 
 
@@ -142,7 +135,16 @@ void lightByNum(int led_num) {
   if (led_num < 0) {
     pixels.clear();  // Set all pixel colors to 'off'
   } else {
-    pixels.setPixelColor(led_num, pixels.Color(0, 0,150));
+    pixels.setPixelColor(led_num, pixels.Color(150, 0, 0));
+  }
+}
+
+void turnOffByNum(int led_num) {
+
+  if (led_num < 0) {
+    pixels.clear();  // Set all pixel colors to 'off'
+  } else {
+    pixels.setPixelColor(led_num, pixels.Color(0, 150,0));
   }
 }
 
@@ -151,7 +153,7 @@ void lightByChar(char note) {
   if (led_num < 0) {
     pixels.clear();  // Set all pixel colors to 'off'
   } else {
-    pixels.setPixelColor(led_num, pixels.Color(0, 0, 150));
+    pixels.setPixelColor(led_num, pixels.Color(150, 0, 0));
   }
 }
 
@@ -284,8 +286,8 @@ void playSoundByChar(char note) {
 void playSongByNum() {
   bool correct = true;
   String song = "A,B,C,D";
- // String dur = "500,1000,500,1000";
-  String song = firebaseReadSong();
+  String dur = "5000,1000,5000,1000";
+  //String song = firebaseReadSong();
  // String dur = firebaseReadSongDuration();
   int num = 0;
   String strduration = "";
@@ -306,8 +308,12 @@ void playSongByNum() {
     lightByChar(note);  //// trun on
     pixels.show();
     playSoundByChar(note);
-
-    correct = waitForTouchAndCheckIfCorrect(song[i]);
+    char next = (i>=(song.length()-1)) ? (-1) : (song[i+2]);
+    unsigned long startMillis = millis();
+    correct = waitForTouchAndCheckIfCorrect(song[i], next, Notedur);
+    // if(millis() - long(Notedur+startMillis) >= (long)10000){
+    //   correct = false;
+    // }
     pixels.clear();
     pixels.show();
     if (!correct) {
@@ -316,7 +322,14 @@ void playSongByNum() {
   }
 }
 
-bool waitForTouchAndCheckIfCorrect(char note) {
+bool waitForTouchAndCheckIfCorrect(char note, char next, uint16_t dur) {
+  Serial.print("waiting for correct touch with note ");
+  Serial.print(note);
+  Serial.print(" and next ");
+  Serial.print(next);
+  Serial.print(" and duration ");
+  Serial.println(dur);
+
   currtouched = cap.touched();
   while (!currtouched) {
     delay(100);
@@ -327,8 +340,9 @@ bool waitForTouchAndCheckIfCorrect(char note) {
     if ((currtouched & _BV(i)) && !(lasttouched & _BV(i))) {
       Serial.print(i);
       Serial.println(" touched");
-      while_touched_play_sound_for_freeplay(i);
-      if (i != getNumForChar(note)) {
+      int correctNote = getNumForChar(note);
+      while_touched_play_sound_for_learning(i, next, dur, correctNote);
+      if (i != correctNote) {
         Serial.println("Incorrect note");
         return false;
       }
@@ -337,6 +351,43 @@ bool waitForTouchAndCheckIfCorrect(char note) {
   lasttouched = currtouched;
   Serial.println("Correct note");
   return true;
+}
+
+
+void while_touched_play_sound_for_learning(uint8_t i, char next, uint16_t dur, int correctNote) {
+  unsigned long startMillis = millis();
+  while (((cap.touched()) & _BV(i)) ) {
+    unsigned long curMillis = millis() - startMillis;
+    if(curMillis >= dur){
+      Serial.println("oooh in if baby");
+      turnOffByNum(i);
+      lightByNum(next);
+    }else{
+      if(i == correctNote){
+      lightByNum(i);
+            Serial.println("NOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO in if baby");
+      }else{
+        turnOffByNum(i);
+      }
+
+    }
+          Serial.println(curMillis);
+
+    pixels.show();
+    switch (i) {
+      case 0: playTone(261.63); break;  //DO
+      case 1: playTone(293.66); break;  //RE
+      case 2: playTone(329.63); break;  //MI
+      case 3: playTone(349.23); break;  //FA
+      case 4: playTone(392.00); break;  //SOL
+      case 5: playTone(440.00); break;  //LA
+      case 6: playTone(493.88); break;  //SI
+      case 7: playTone(523.25); break;  // Do (higher octave)
+      case 8: playTone(552.37); break;
+      case 9: playTone(581.55); break;
+      default: playTone(0.0); break;
+    }
+  }
 }
 
 /***************************************************************************************************************************************************/
@@ -418,7 +469,7 @@ void setup() {
 
 void loop() {
 
-  //playSongByNum();
- freeplay();
+  playSongByNum();
+ //freeplay();
  // pixels.show();
 }
