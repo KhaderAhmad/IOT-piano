@@ -321,8 +321,9 @@ bool waitForTouchAndCheckIfCorrect(char note, char next, uint16_t dur) {
   Serial.println(dur);
 
   currtouched = cap.touched();
+  int correctNote = getNumForChar(note);
 
-  while (!currtouched && !lasttouched ) {
+  while (!currtouched && !(lasttouched & _BV(correctNote)) ) {
    
     delay(100);
     pixels.show();
@@ -339,7 +340,7 @@ bool waitForTouchAndCheckIfCorrect(char note, char next, uint16_t dur) {
     if ((currtouched & _BV(i)) && !(lasttouched & _BV(i))) {
       Serial.print(i);
       Serial.println(" touched");
-      int correctNote = getNumForChar(note);
+      
       while_touched_play_sound_for_learning(i, getNumForChar(next), dur, correctNote);
       if (i != correctNote) {
         Serial.println("Incorrect note");
@@ -348,9 +349,9 @@ bool waitForTouchAndCheckIfCorrect(char note, char next, uint16_t dur) {
     }
   }
   lasttouched = currtouched;
-  // if(note == next){
-  // lasttouched = 0;
-  // }
+  if(note == next){
+  lasttouched = 0;
+  }
   Serial.println("Correct note");
   return true;
 }
