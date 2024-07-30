@@ -337,7 +337,7 @@ bool waitForTouchAndCheckIfCorrect(char note, char next, uint16_t dur) {
   for (uint8_t i = 0; i < 12; i++) {
         Serial.println("here in for ******************************************************************");
 
-    if ((currtouched & _BV(i)) && !(lasttouched & _BV(i))) {
+    if ((currtouched & _BV(i))) {
       Serial.print(i);
       Serial.println(" touched");
       
