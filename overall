@@ -154,7 +154,7 @@ void turnOffByNum(int led_num) {
   if (led_num < 0) {
     pixels.clear();  // Set all pixel colors to 'off'
   } else {
-    pixels.setPixelColor(led_num, pixels.Color(0, 150,0));
+    pixels.setPixelColor(led_num, pixels.Color(0, 150, 0));
   }
 }
 
@@ -241,9 +241,8 @@ void playTone(float frequency) {
 }
 
 
-float getFreqForChar(char note)
-{
-   float freq = 0.0;
+float getFreqForChar(char note) {
+  float freq = 0.0;
   switch (note) {
     case 'A': freq = AT; break;  // Do
     case 'B': freq = BT; break;  // Re
@@ -255,7 +254,7 @@ float getFreqForChar(char note)
     case 'H': freq = HT; break;  // Do (higher octave)
     default: freq = NO; break;   // Silence
   }
-return freq;
+  return freq;
 }
 
 int getNumForChar(char note) {
@@ -273,15 +272,32 @@ int getNumForChar(char note) {
 }
 
 
-unsigned int delayForNextNote = 0;
-unsigned int del = 3000;
+
+void playSoundByChar(char note) {
+  float freq = getFreqForChar(note);
+
+  // const int sampleCount = int(SAMPLE_RATE / freq);
+  // int16_t samplesS[sampleCount];
+
+  // for (int i = 0; i < sampleCount; i++) {
+  //   float sample = sin(2 * PI * freq * i / SAMPLE_RATE);
+  //   samplesS[i] = (int16_t)(sample * 32767);
+  // }
+
+  // size_t bytesWritten;
+  // for (int i = 0; i < SAMPLE_RATE / sampleCount; i++) {
+  //   i2s_write(I2S_PORT, samplesS, sampleCount * sizeof(int16_t), &bytesWritten, portMAX_DELAY);
+  // }
+}
+
+
 
 void playSongByNum() {
   bool correct = true;
-  String song = "A,A,B,C,D";
-  String dur = "5000,1000,1000,5000,1000";
+  String song = "A,B,C,D";
+  String dur = "5000,1000,5000,1000";
   //String song = firebaseReadSong();
- // String dur = firebaseReadSongDuration();
+  // String dur = firebaseReadSongDuration();
   int num = 0;
   String strduration = "";
   for (int i = 0; i < song.length(); i++) {
@@ -290,20 +306,23 @@ void playSongByNum() {
 
     if (note == ',') continue;
     Serial.println(song[i]);
-    while (dur[num] != ',' && dur[num]!= NULL) {
-    
+    while (dur[num] != ',' && dur[num] != NULL) {
+      Serial.println("in while");
       strduration += dur[num];
       num++;
     }
     num++;
-   int Notedur = strduration.toInt();
+    int Notedur = strduration.toInt();
 
     lightByChar(note);  //// trun on
     pixels.show();
-
-    char next = (i>=(song.length()-1)) ? (-1) : (song[i+2]);
-    delayForNextNote = millis();
+    playSoundByChar(note);
+    char next = (i >= (song.length() - 1)) ? (-1) : (song[i + 2]);
+    unsigned long startMillis = millis();
     correct = waitForTouchAndCheckIfCorrect(song[i], next, Notedur);
+    // if(millis() - long(Notedur+startMillis) >= (long)10000){
+    //   correct = false;
+    // }
     pixels.clear();
     pixels.show();
     if (!correct) {
@@ -321,67 +340,59 @@ bool waitForTouchAndCheckIfCorrect(char note, char next, uint16_t dur) {
   Serial.println(dur);
 
   currtouched = cap.touched();
-  int correctNote = getNumForChar(note);
-
-  while (!currtouched && !(lasttouched & _BV(correctNote)) ) {
-   
+  while (!currtouched && currtouched != lasttouched) {
     delay(100);
     pixels.show();
     currtouched = cap.touched();
-    if(millis() - delayForNextNote >= del){
-      Serial.println("you suck kys");
-      return false;
-    }
   }
 
   for (uint8_t i = 0; i < 12; i++) {
-        Serial.println("here in for ******************************************************************");
-
-    if ((currtouched & _BV(i))) {
+    if ((currtouched & _BV(i)) && !(lasttouched & _BV(i))) {
       Serial.print(i);
       Serial.println(" touched");
-      
+      int correctNote = getNumForChar(note);
       while_touched_play_sound_for_learning(i, getNumForChar(next), dur, correctNote);
       if (i != correctNote) {
         Serial.println("Incorrect note");
         return false;
       }
+      // Reset lasttouched to allow detection of the same note again
+      lasttouched = 0;
     }
   }
+  // Update lasttouched at the end of the loop
   lasttouched = currtouched;
-  if(note == next){
-  lasttouched = 0;
-  }
   Serial.println("Correct note");
   return true;
 }
 
 
+
 void while_touched_play_sound_for_learning(uint8_t i, int next, uint16_t dur, int correctNote) {
-  int green= 0;
+  int green = 0;
   int red = 0;
   unsigned long startMillis = millis();
-  while (((cap.touched()) & _BV(i)) ) {
+  while (((cap.touched()) & _BV(i))) {
     unsigned long curMillis = millis() - startMillis;
-    if(curMillis >= dur){
+    if (curMillis >= dur) {
       Serial.println("oooh in if baby");
       turnOffByNum(i);
       lightByNum(next);
-    }else{
-      if(i == correctNote){
-        green = (int)((float)((float)128 * (float)(millis()/(float)(dur + startMillis))));
+    } else {
+      if (i == correctNote) {
+        green = (int)((float)((float)128 * (float)(millis() / (float)(dur + startMillis))));
         Serial.println(green);
         pixels.setPixelColor(i, pixels.Color(150 - green, green, 0));
-      lightNextByNum(next);
-      //lightByNum(i);
-            Serial.println("NOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO in if baby");
-      }else{
-        //lightNextByNum(next);
+
+        lightNextByNum(next);
+        //lightByNum(i);
+        Serial.println("NOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO in if baby");
+      } else {
+        lightNextByNum(next);
         turnOffByNum(i);
       }
-
     }
-          Serial.println(curMillis);
+    Serial.println(curMillis);
 
     pixels.show();
     switch (i) {
@@ -404,48 +415,154 @@ void while_touched_play_sound_for_learning(uint8_t i, int next, uint16_t dur, in
 /*                                                           freeplay functions                                                                       */
 /***************************************************************************************************************************************************/
 
-void while_touched_play_sound_for_freeplay(uint8_t i) {
-  while (((cap.touched()) & _BV(i))) {
+void while_touched_play_sound_for_freeplay(int i, int j) {
+  if (i != -1 && j == -1) {
+    while (((cap.touched()) & _BV(i)) ) {
+        int temp = cap.touched();
+        for (int itr = 0; itr < 12; itr++) {
+          if((temp & _BV(itr)) && itr != i){
+                        Serial.println("lets get out 0");
+            return;
+          } 
+        }
+      //Serial.println(" here play sound !");
+      lightByNum(i);
+      pixels.show();
+     playTone(getFreq(i));
+    }
+  }
+  if (j != -1 && i == -1) {
+    while (((cap.touched()) & _BV(j))) {
+        int temp = cap.touched();
+        for (int itr = 0; itr < 12; itr++) {
+          if((temp & _BV(itr)) && itr != j){
+            Serial.println("lets get out 1");
+            return;
+          } 
+        }
+      lightByNum(j);
+      pixels.show();
+     playTone( getFreq(j));
+    }
+  }
+ if(i!=-1 && j!=-1){ 
+  while (((cap.touched()) & _BV(i)) && ((cap.touched()) & _BV(j))) {
+      int temp = cap.touched();
+      Serial.print("the i is *******");
+      Serial.println(i);
+
+      Serial.print("the j is *******");
+      Serial.println(j);
+        for (int itr = 0; itr < 12; itr++) {
+          if(((itr != i) && (temp & _BV(itr))) && ((itr != j) && (temp & _BV(itr)))) {
+            Serial.println(itr);
+        Serial.println("lets get out 3");
+         return;
+      }
+        }
     lightByNum(i);
+    lightByNum(j);
     pixels.show();
-    switch (i) {
-      case 0: playTone(261.63); break;  //DO
-      case 1: playTone(293.66); break;  //RE
-      case 2: playTone(329.63); break;  //MI
-      case 3: playTone(349.23); break;  //FA
-      case 4: playTone(392.00); break;  //SOL
-      case 5: playTone(440.00); break;  //LA
-      case 6: playTone(493.88); break;  //SI
-      case 7: playTone(523.25); break;  // Do (higher octave)
-      case 8: playTone(552.37); break;
-      case 9: playTone(581.55); break;
-      default: playTone(0.0); break;
-    }
+    playTone(getFreq(i) + getFreq(j));
+
   }
 }
+
+}
+
+
+float getFreq(int i){
+      switch (i) {
+      case 0: return 261.63; break;  //DO
+      case 1: return (293.66); break;  //RE
+      case 2: return (329.63); break;  //MI
+      case 3: return (349.23); break;  //FA
+      case 4: return (392.00); break;  //SOL
+      case 5: return (440.00); break;  //LA
+      case 6: return (493.88); break;  //SI
+      case 7: return (523.25); break;  // Do (higher octave)
+      case 8: return (552.37); break;
+      case 9: return (581.55); break;
+      default: return (0.0); break;
+    }
+}
+// void freeplay() {
+//   //Serial.println("in freeplay");
+//   // Get the currently touched pads
+//   currtouched = cap.touched();
+
+//   for (uint8_t i = 0; i < 12; i++) {
+//     // it if is touched and wasnt touched before, alert!
+//     if ((currtouched & _BV(i)) && !(lasttouched & _BV(i))) {
+//       Serial.print(i);
+//       Serial.println(" touched");
+//       while_touched_play_sound_for_freeplay(i);
+//     }
+//     if (!(currtouched & _BV(i)) && (lasttouched & _BV(i))) {
+//       Serial.print(i);
+//       Serial.println(" released");
+//       lightByNum(-1);
+//     }
+//     pixels.show();
+//   }
+//   lasttouched = currtouched;
+//   return;
+// }
+
+
 void freeplay() {
-  //Serial.println("in freeplay");
-  // Get the currently touched pads
-  currtouched = cap.touched();
 
-  for (uint8_t i = 0; i < 12; i++) {
-    // it if is touched and wasnt touched before, alert!
-    if ((currtouched & _BV(i)) && !(lasttouched & _BV(i))) {
-      Serial.print(i);
-      Serial.println(" touched");
-      while_touched_play_sound_for_freeplay(i);
+
+  int firstNote = -1, secondNote = -1;
+  while (true) {
+    currtouched = cap.touched();
+    for (int i = 0; i < 12; i++) {
+      if ((currtouched & _BV(i)) && !(lasttouched & _BV(i))) {
+        Serial.println(firstNote);
+        if (firstNote == -1) {
+          Serial.print(i);
+          Serial.println(" touched");
+          lightByNum(i);
+          firstNote = i;
+          //while_touched_play_sound_for_freeplay(i,i);
+        } else {
+          Serial.print(i);
+          Serial.println(" double touch");
+          lightByNum(i);
+          secondNote = i;
+        }
+      }
+
+      if (!(currtouched & _BV(i)) && (lasttouched & _BV(i))) {
+        pixels.setPixelColor(i, pixels.Color(0, 0, 0));
+        Serial.print(i);
+        Serial.println(" released");
+        if (firstNote != -1) {
+          firstNote = -1;
+        } else {
+          secondNote = -1;
+        }
+      }
     }
-    if (!(currtouched & _BV(i)) && (lasttouched & _BV(i))) {
-      Serial.print(i);
-      Serial.println(" released");
-      lightByNum(-1);
+
+    if (firstNote != -1 && secondNote == -1) {
+      while_touched_play_sound_for_freeplay(firstNote, secondNote);
+    } else if (firstNote != -1 && secondNote != -1) {
+      while_touched_play_sound_for_freeplay(firstNote, secondNote);
+    } else {
+      while_touched_play_sound_for_freeplay(firstNote, secondNote);
     }
+
+
+
     pixels.show();
+    lasttouched = currtouched;
   }
-  lasttouched = currtouched;
-  return;
 }
 
+// void learning(int songnum) {
+//   playSongByNum(songnum);
+// }
 
 
 /***************************************************************************************************************************************************/
@@ -459,7 +576,9 @@ void setup() {
   dacSetup();
   delay(1000);
   Neo_setup();
-
+  //   #if defined(__AVR_ATtiny85__) && (F_CPU == 16000000)
+  // clock_prescale_set(clock_div_1);
+  // #endif
   pixels.begin();
   delay(1000);
   firebaseSetup();
@@ -474,7 +593,7 @@ void setup() {
 
 void loop() {
 
-  playSongByNum();
- //freeplay();
- // pixels.show();
+  //playSongByNum();
+  freeplay();
+  // pixels.show();
 }
