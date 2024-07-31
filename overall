@@ -475,7 +475,7 @@ void while_touched_play_sound_for_freeplay(int i, int j) {
     lightByNum(i);
     lightByNum(j);
     pixels.show();
-    playTone(getFreq(i) + getFreq(j));
+    playTone(3*(getFreq(i) + getFreq(j))/4);
 
   }
 }
