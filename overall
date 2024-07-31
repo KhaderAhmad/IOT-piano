@@ -416,8 +416,12 @@ void while_touched_play_sound_for_learning(uint8_t i, int next, uint16_t dur, in
 /***************************************************************************************************************************************************/
 
 void while_touched_play_sound_for_freeplay(int i, int j) {
+
+ 
+
   if (i != -1 && j == -1) {
     while (((cap.touched()) & _BV(i)) ) {
+      
         int temp = cap.touched();
         for (int itr = 0; itr < 12; itr++) {
           if((temp & _BV(itr)) && itr != i){
@@ -426,6 +430,10 @@ void while_touched_play_sound_for_freeplay(int i, int j) {
           } 
         }
       //Serial.println(" here play sound !");
+        Serial.print("the i is *******");
+    Serial.println(i);
+  Serial.print("the j is *******");
+      Serial.println(j);
       lightByNum(i);
       pixels.show();
      playTone(getFreq(i));
@@ -440,19 +448,19 @@ void while_touched_play_sound_for_freeplay(int i, int j) {
             return;
           } 
         }
+          Serial.print("the i is *******");
+    Serial.println(i);
+  Serial.print("the j is *******");
+      Serial.println(j);
       lightByNum(j);
       pixels.show();
-     playTone( getFreq(j));
+     playTone(getFreq(j));
     }
   }
  if(i!=-1 && j!=-1){ 
   while (((cap.touched()) & _BV(i)) && ((cap.touched()) & _BV(j))) {
       int temp = cap.touched();
-      Serial.print("the i is *******");
-      Serial.println(i);
 
-      Serial.print("the j is *******");
-      Serial.println(j);
         for (int itr = 0; itr < 12; itr++) {
           if(((itr != i) && (temp & _BV(itr))) && ((itr != j) && (temp & _BV(itr)))) {
             Serial.println(itr);
@@ -460,6 +468,10 @@ void while_touched_play_sound_for_freeplay(int i, int j) {
          return;
       }
         }
+          Serial.print("the i is *******");
+    Serial.println(i);
+  Serial.print("the j is *******");
+      Serial.println(j);
     lightByNum(i);
     lightByNum(j);
     pixels.show();
@@ -537,19 +549,22 @@ void freeplay() {
         pixels.setPixelColor(i, pixels.Color(0, 0, 0));
         Serial.print(i);
         Serial.println(" released");
-        if (firstNote != -1) {
+        if (firstNote == i) {
           firstNote = -1;
-        } else {
+        } else if (secondNote == i) {
           secondNote = -1;
         }
       }
     }
 
     if (firstNote != -1 && secondNote == -1) {
+      Serial.println(" play 1");
       while_touched_play_sound_for_freeplay(firstNote, secondNote);
     } else if (firstNote != -1 && secondNote != -1) {
+      Serial.println(" play both");
       while_touched_play_sound_for_freeplay(firstNote, secondNote);
-    } else {
+    } else  if (firstNote == -1 && secondNote != -1) {
+      Serial.println(" play 2");
       while_touched_play_sound_for_freeplay(firstNote, secondNote);
     }
 
