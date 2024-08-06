@@ -17,7 +17,6 @@
 #define I2S_SD 23   // DIN pin
 #define I2S_SCK 26  // BCLK pin
 #define SAMPLE_RATE 44100
-
 // Which pin on the Arduino is connected to the NeoPixels?
 #define Neo_pin 18  // On Trinket or Gemma, suggest changing this to 1
 //red for 3v3
@@ -26,6 +25,8 @@
 
 // How many NeoPixels are attached to the Arduino?
 #define NUMPIXELS 11  // Popular NeoPixel ring size
+
+#define StartButton 4
 
 
 #ifndef _BV
@@ -58,18 +59,18 @@
 Firebase firebase(REFERENCE_URL);
 
 void firebaseSetup() {
-  // Serial.println("Connecting to WIFI: Pending...");
-  // WiFi.mode(WIFI_STA);
-  // WiFi.disconnect();
-  // delay(1000);
-  // WiFi.begin(_SSID, _PASSWORD);
+  Serial.println("Connecting to WIFI: Pending...");
+  WiFi.mode(WIFI_STA);
+  WiFi.disconnect();
+  delay(1000);
+  WiFi.begin(_SSID, _PASSWORD);
 
-  //  while (WiFi.status() != WL_CONNECTED) {
-  //   freeplay();
-  //  delay(10);
-  // Serial.print("-");
-  // }
-  // Serial.println("Connected to WIFI");
+   while (WiFi.status() != WL_CONNECTED) {
+    freeplay();
+   delay(10);
+  Serial.print("-");
+  }
+  Serial.println("Connected to WIFI");
 }
 
 
@@ -318,6 +319,7 @@ void playSoundByChar(char note) {
 
 
 void playSongByNum() {
+  Serial.println("in learning");
   bool correct = true;
   String song = "A,A,B,C,D";
   String dur = "1000,1000,1000,5000,1000";
@@ -543,10 +545,19 @@ float getFreq(int i) {
 
 
 void freeplay() {
+  Serial.println("in freeplay");
 
 
   int firstNote = -1, secondNote = -1;
-  while (true) {
+  Serial.println(digitalRead(StartButton));
+  
+  while ( true) {
+  int stop = digitalRead(StartButton);
+  if(stop < 1)
+  {
+    return;
+  }
+    Serial.println(digitalRead(StartButton));
     currtouched = cap.touched();
     for (int i = 0; i < 12; i++) {
       if ((currtouched & _BV(i)) && !(lasttouched & _BV(i))) {
@@ -690,6 +701,11 @@ void record() {
     pixels.show();
     lasttouched = currtouched;
   }
+    firebase.setString("/recorded", song);
+    firebase.setString("/duration", dur);
+
+
+  
 }
 
 
@@ -710,6 +726,8 @@ void setup() {
   pixels.begin();
   delay(1000);
   firebaseSetup();
+  pinMode(StartButton, INPUT_PULLUP);
+
 }
 
 
@@ -722,8 +740,15 @@ void setup() {
 void loop() {
   Serial.println("*************************starting from loop*********************************************************************");
 
+  String path = "/currentMode";
+  String mode = firebase.getString(path);
+  if(mode == "freePlay"){
+      freeplay();
+      Serial.println("exit freeplay");
+  }else if(mode == "LearnMode")
   playSongByNum();
+  else
+  record();
   //freeplay();
-  //record();
   // pixels.show();
 }
