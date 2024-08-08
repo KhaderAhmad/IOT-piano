@@ -24,6 +24,12 @@ class _AddSongState extends State<AddSong> {
     _updateCurrentModeToRecord();
   }
 
+  @override
+  void dispose() {
+    _updateCurrentModeToFreePlay();
+    super.dispose();
+  }
+
   void _updateCurrentModeToRecord() async {
     String userId = FirebaseAuth.instance.currentUser!.uid;
 
@@ -37,6 +43,21 @@ class _AddSongState extends State<AddSong> {
     await FirebaseDatabase.instance
         .reference()
         .update({'currentMode': 'record'});
+  }
+
+  void _updateCurrentModeToFreePlay() async {
+    String userId = FirebaseAuth.instance.currentUser!.uid;
+
+    // Update in Firestore
+    await FirebaseFirestore.instance
+        .collection('users')
+        .doc(userId)
+        .update({'currentMode': 'freePlay'});
+
+    // Update in Realtime Database
+    await FirebaseDatabase.instance
+        .reference()
+        .update({'currentMode': 'freePlay'});
   }
 
   @override
