@@ -26,7 +26,9 @@
 // How many NeoPixels are attached to the Arduino?
 #define NUMPIXELS 11  // Popular NeoPixel ring size
 
-#define StartButton 4
+#define StartButton 14
+#define ExitButton 12
+
 
 
 #ifndef _BV
@@ -51,9 +53,10 @@
 
 // WiFi and Firebase setup
 #include <ESP32Firebase.h>
-#define _SSID "jamila"        // Your WiFi SSID
-#define _PASSWORD "12345678"  // Your WiFi Password
-#define REFERENCE_URL "https://ass2-cb1cb-default-rtdb.firebaseio.com/"
+#define _SSID "ICST"        // Your WiFi SSID
+#define _PASSWORD "arduino123"  // Your WiFi Password
+//#define REFERENCE_URL "https://ass2-cb1cb-default-rtdb.firebaseio.com/"
+#define REFERENCE_URL "https://iot-piano-default-rtdb.firebaseio.com/"
 #define FIREBASE_AUTH "AIzaSyB1GPXvfeC1zr0cQ_-go7AmLtPTyiZrPR0"
 
 Firebase firebase(REFERENCE_URL);
@@ -85,7 +88,7 @@ String firebaseReadSong() {
 
 
 String firebaseReadSongDuration() {
-  String durStr = "/currentSongDuration";
+  String durStr = "/duration";
   String song = firebase.getString(durStr);
   Serial.print("duration is:");
   Serial.println(durStr);
@@ -299,37 +302,21 @@ char getCharForNum(int note) {
 
 
 
-void playSoundByChar(char note) {
-  float freq = getFreqForChar(note);
-
-  // const int sampleCount = int(SAMPLE_RATE / freq);
-  // int16_t samplesS[sampleCount];
-
-  // for (int i = 0; i < sampleCount; i++) {
-  //   float sample = sin(2 * PI * freq * i / SAMPLE_RATE);
-  //   samplesS[i] = (int16_t)(sample * 32767);
-  // }
-
-  // size_t bytesWritten;
-  // for (int i = 0; i < SAMPLE_RATE / sampleCount; i++) {
-  //   i2s_write(I2S_PORT, samplesS, sampleCount * sizeof(int16_t), &bytesWritten, portMAX_DELAY);
-  // }
-}
-
-
-
-
-
 void playSongByNum() {
   bool correct = true;
-  String song = "A,BC,D,E,F";
-  String dur = "1000,5000,1000,5000,1000";
-  //String song = firebaseReadSong();
-  // String dur = firebaseReadSongDuration();
+  //String song = "A,BC,D,E,F";
+  //String dur = "1000,5000,1000,5000,1000";
+  String song = firebaseReadSong();
+  String dur = firebaseReadSongDuration();
   int num = 0;
   String strduration = "";
- 
+ int stop;
   for (int i = 0; i < song.length(); i++) {
+    stop = digitalRead(ExitButton);
+  if(stop < 1)
+  {
+    break;
+  }
       char note = song[i];
     char noteNext = song[i + 1];
      if (note == ',') continue;
@@ -397,6 +384,7 @@ void playSongByNum() {
     pixels.clear();
     pixels.show();
     if (!correct) {
+
       return;
     }
   }
@@ -409,9 +397,15 @@ bool waitForTouchAndCheckIfCorrectTWOStrigs(String note, String next, uint16_t d
   Serial.print(next);
   Serial.print(" and duration ");
   Serial.println(dur);
+  int stop = 1;
 
   currtouched = cap.touched();
   while (!currtouched && currtouched != lasttouched) {  /// waiting for any touch
+  stop = digitalRead(ExitButton);
+  if(stop < 1)
+  {
+    break;
+  }
     delay(100);
     pixels.show();
     currtouched = cap.touched();
@@ -676,14 +670,14 @@ void freeplay() {
 
   int firstNote = -1, secondNote = -1;
   Serial.println(digitalRead(StartButton));
+  Serial.println(digitalRead(ExitButton));
   
-  while ( true) {
-  int stop = digitalRead(StartButton);
+  while (true) {
+  int stop = digitalRead(ExitButton);
   if(stop < 1)
   {
     return;
   }
-    Serial.println(digitalRead(StartButton));
     currtouched = cap.touched();
     for (int i = 0; i < 12; i++) {
       if ((currtouched & _BV(i)) && !(lasttouched & _BV(i))) {
@@ -748,7 +742,13 @@ void record() {
   String song = "";
   String dur = "";
   int firstNote = -1, secondNote = -1;
-  while (!(cap.touched() & _BV(9))) {
+  int stop = 1;
+  while (true) {
+  stop = digitalRead(ExitButton);
+  if(stop < 1)
+  {
+    break;
+  }
     currtouched = cap.touched();
     for (int i = 0; i < 9; i++) {
       if ((currtouched & _BV(i)) && !(lasttouched & _BV(i))) {
@@ -787,35 +787,52 @@ void record() {
       Serial.println(" play 1");
       while_touched_play_sound_for_freeplay(firstNote, secondNote);
 
+      unsigned long endMillis = millis();
+      String temp = (String)(endMillis - startMillis);
+      if(temp.toInt() >= 50){
+      dur += (temp + ",");
+
+
       song += (getCharForNum(firstNote));
       song += ",";
-      unsigned long endMillis = millis();
+      }
+      
 
-      String temp = (String)(endMillis - startMillis);
-      dur += (temp + ",");
+      
     } else if (firstNote != -1 && secondNote != -1) {
 
       Serial.println(" play both");
       while_touched_play_sound_for_freeplay(firstNote, secondNote);
 
-      song += getCharForNum(firstNote);
-      song += getCharForNum(secondNote);
-      song += ",";
 
       unsigned long endMillis = millis();
 
       String temp = (String)(endMillis - startMillis);
+
+      if(temp.toInt()  >= 50){
       dur += (temp + ",");
+
+      song += getCharForNum(firstNote);
+      song += getCharForNum(secondNote);
+      song += ",";
+      }
+
+      
     } else if (firstNote == -1 && secondNote != -1) {
       Serial.println(" play 2");
 
 
       while_touched_play_sound_for_freeplay(firstNote, secondNote);
       unsigned long endMillis = millis();
+      String temp = (String)(endMillis - startMillis);
+      if(temp.toInt()  >= 50){
+
+      
+      dur += (temp + ",");
       song += (getCharForNum(secondNote));
       song += ",";
-      String temp = (String)(endMillis - startMillis);
-      dur += (temp + ",");
+      }
+      
     }
     Serial.print(" the song is *****");
     Serial.println(song);
@@ -827,8 +844,10 @@ void record() {
     pixels.show();
     lasttouched = currtouched;
   }
+  if(song != ""){
     firebase.setString("/recorded", song);
     firebase.setString("/duration", dur);
+  }
 
 
   
@@ -853,7 +872,7 @@ void setup() {
   delay(1000);
   firebaseSetup();
   pinMode(StartButton, INPUT_PULLUP);
-
+  pinMode(ExitButton, INPUT_PULLUP);
 }
 
 
@@ -864,17 +883,28 @@ void setup() {
 
 
 void loop() {
-  Serial.println("*************************starting from loop*********************************************************************");
-
+  //Serial.println("*************************starting from loop*********************************************************************");
+  int start = digitalRead(StartButton);
+  
+  if(start < 1){
+    Serial.println("starting mode");
+    String mode = "freePlay";
   String path = "/currentMode";
-  String mode = firebase.getString(path);
+  mode = firebase.getString(path);
+  
   if(mode == "freePlay"){
       freeplay();
       Serial.println("exit freeplay");
-  }else if(mode == "LearnMode")
+  }else if(mode == "learn"){
   playSongByNum();
-  else
+   firebase.setString(path, "freePlay");
+  }
+  else{
   record();
+  //firebase.setString(path, "freePlay");
+  }
+  }
+  
   //freeplay();
   // pixels.show();
 }
