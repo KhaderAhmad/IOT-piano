@@ -8,10 +8,10 @@ class AddSong extends StatefulWidget {
   final Map<String, dynamic> songs;
 
   const AddSong({
-    super.key,
+    Key? key,
     required this.userName,
     required this.songs,
-  });
+  }) : super(key: key);
 
   @override
   State<AddSong> createState() => _AddSongState();
@@ -31,8 +31,6 @@ class _AddSongState extends State<AddSong> {
   void initState() {
     super.initState();
     _updateCurrentModeToRecord();
-
-    String userId = FirebaseAuth.instance.currentUser!.uid;
 
     recordedRef = FirebaseDatabase.instance.ref('/recorded');
     durationRef = FirebaseDatabase.instance.ref('/duration');
@@ -61,9 +59,7 @@ class _AddSongState extends State<AddSong> {
         .update({'currentMode': 'record'});
 
     // Update in Realtime Database
-    await FirebaseDatabase.instance
-        .reference()
-        .update({'currentMode': 'record'});
+    await FirebaseDatabase.instance.ref().update({'currentMode': 'record'});
   }
 
   void _updateCurrentModeToFreePlay() async {
@@ -76,9 +72,7 @@ class _AddSongState extends State<AddSong> {
         .update({'currentMode': 'freePlay'});
 
     // Update in Realtime Database
-    await FirebaseDatabase.instance
-        .reference()
-        .update({'currentMode': 'freePlay'});
+    await FirebaseDatabase.instance.ref().update({'currentMode': 'freePlay'});
   }
 
   void _listenToRecordedChanges() {
@@ -107,16 +101,28 @@ class _AddSongState extends State<AddSong> {
     String songName = _songNameController.text;
 
     if (songName.isNotEmpty) {
+      final userId = FirebaseAuth.instance.currentUser!.uid;
+      final songRef = FirebaseFirestore.instance
+          .collection('users')
+          .doc(userId)
+          .collection('songs')
+          .doc(songName);
+
+      final songSnapshot = await songRef.get();
+
       Map<String, dynamic> songData = {};
       if (recordedData != null) songData['notes'] = recordedData;
       if (durationData != null) songData['duration'] = durationData;
 
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(FirebaseAuth.instance.currentUser!.uid)
-          .collection('songs')
-          .doc(songName)
-          .set(songData, SetOptions(merge: true)); // Merge to update only specific fields
+      if (songSnapshot.exists) {
+        // If the song already exists, update the existing document
+        await songRef.set(songData, SetOptions(merge: true)); // Merge to update only specific fields
+        _showPopUpMessage('Song Updated', 'The song "$songName" was updated successfully.');
+      } else {
+        // If the song does not exist, create a new document
+        await songRef.set(songData);
+        _showPopUpMessage('Song Added', 'The song "$songName" was added successfully.');
+      }
     } else {
       _showPopUpMessage('No song name', 'Please insert a name for your song before recording.');
     }
