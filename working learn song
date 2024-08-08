@@ -23,6 +23,8 @@ class _LearnPageState extends State<LearnPage> {
     'F': 'La',
     'G': 'Si',
     'H': 'Do2',
+    'I': 'Re2',
+    'J': 'Me2'
   };
 
   bool _showEasyHardButtons = true; // Control visibility of Easy and Hard buttons
@@ -124,7 +126,7 @@ class _LearnPageState extends State<LearnPage> {
             TextButton(
               child: Text('OK'),
               onPressed: () {
-                _updateCurrentMode('learn', 'easy', mappedNotes); // Set currentMode to 'learn', challenge to 'easy', and update currentSong with mappedNotes
+                _updateCurrentMode('learn', 'easy', notes); // Set currentMode to 'learn', challenge to 'easy', and update currentSong with mappedNotes
                 setState(() {
                   _showEasyHardButtons = false; // Hide Easy and Hard buttons
                 });
@@ -167,7 +169,7 @@ class _LearnPageState extends State<LearnPage> {
             TextButton(
               child: Text('OK'),
               onPressed: () {
-                _updateCurrentMode('learn', 'hard', mappedNotes); // Set currentMode to 'learn', challenge to 'hard', and update currentSong with mappedNotes
+                _updateCurrentMode('learn', 'hard', notes); // Set currentMode to 'learn', challenge to 'hard', and update currentSong with mappedNotes
                 setState(() {
                   _showEasyHardButtons = false; // Hide Easy and Hard buttons
                 });
