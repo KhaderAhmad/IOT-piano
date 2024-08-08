@@ -18,10 +18,19 @@ class AddSong extends StatefulWidget {
 }
 
 class _AddSongState extends State<AddSong> {
+  final TextEditingController _songNameController = TextEditingController();
+  late DatabaseReference recordedRef;
+  late Stream<DatabaseEvent> recordedStream;
+
   @override
   void initState() {
     super.initState();
     _updateCurrentModeToRecord();
+
+    String userId = FirebaseAuth.instance.currentUser!.uid;
+    recordedRef = FirebaseDatabase.instance.ref('/recorded');
+    recordedStream = recordedRef.onValue;
+    _listenToRecordedChanges();
   }
 
   @override
@@ -60,6 +69,35 @@ class _AddSongState extends State<AddSong> {
         .update({'currentMode': 'freePlay'});
   }
 
+  void _listenToRecordedChanges() {
+    recordedStream.listen((DatabaseEvent event) async {
+      if (event.snapshot.value != null) {
+        String songName = _songNameController.text;
+        String recordedData = event.snapshot.value.toString();
+
+        if (songName.isNotEmpty) {
+          await FirebaseFirestore.instance
+              .collection('users')
+              .doc(FirebaseAuth.instance.currentUser!.uid)
+              .collection('songs')
+              .doc(songName)
+              .set({'recordedData': recordedData});
+        } else {
+          _showErrorMessage('Please insert a name for your song - before exiting recoreding mode via hardware.');
+        }
+      }
+    });
+  }
+
+  void _showErrorMessage(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        duration: const Duration(seconds: 4),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -75,13 +113,27 @@ class _AddSongState extends State<AddSong> {
       body: Center(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
-          child: Text(
-            "please press the start button to start recording",
-            style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.normal,
-            ),
-            textAlign: TextAlign.center,
+          child: Column(
+            children: [
+              TextField(
+                controller: _songNameController,
+                decoration: InputDecoration(
+                  labelText: 'Song Name',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12.0),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                "Please press the start button to start recording",
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.normal,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
           ),
         ),
       ),
