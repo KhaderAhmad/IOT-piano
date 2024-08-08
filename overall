@@ -82,8 +82,8 @@ String firebaseReadSong() {
 
   String song = firebase.getString(songStr);
   Serial.print("Song is:");
-  Serial.println(songStr);
-  return songStr;
+  Serial.println(song);
+  return song;
 }
 
 
@@ -91,8 +91,17 @@ String firebaseReadSongDuration() {
   String durStr = "/duration";
   String song = firebase.getString(durStr);
   Serial.print("duration is:");
-  Serial.println(durStr);
-  return durStr;
+  Serial.println(song);
+  return song;
+}
+
+String firebaseReadChallenge() {
+  String songStr = "/challenge";
+
+  String song = firebase.getString(songStr);
+  Serial.print("Song is:");
+  Serial.println(song);
+  return song;
 }
 
 
@@ -179,7 +188,7 @@ void lightByChar(char note) {
 /***************************************************************************************************************************************************/
 
 unsigned int delayForNextNote = 0;
-unsigned int del = 3000;
+unsigned int del = 5000;
 
 
 // DAC Amplifier setup
@@ -315,7 +324,7 @@ void playSongByNum() {
     stop = digitalRead(ExitButton);
   if(stop < 1)
   {
-    break;
+    return;
   }
       char note = song[i];
     char noteNext = song[i + 1];
@@ -402,11 +411,12 @@ bool waitForTouchAndCheckIfCorrectTWOStrigs(String note, String next, uint16_t d
   currtouched = cap.touched();
   while (!currtouched && currtouched != lasttouched) {  /// waiting for any touch
   stop = digitalRead(ExitButton);
+  //Serial.print(stop);
   if(stop < 1)
   {
-    break;
+    return false;
   }
-    delay(100);
+    delay(50);
     pixels.show();
     currtouched = cap.touched();
     if (millis() - delayForNextNote >= del) {
@@ -417,6 +427,12 @@ bool waitForTouchAndCheckIfCorrectTWOStrigs(String note, String next, uint16_t d
   while (currtouched == 0) {
     //return false;
     currtouched = cap.touched();
+    stop = digitalRead(ExitButton);
+  //Serial.print(stop);
+  if(stop < 1)
+  {
+    return false;
+  }
   }
   int lenNote = note.length();
   int lenNext = next.length();
@@ -896,10 +912,16 @@ void loop() {
       freeplay();
       Serial.println("exit freeplay");
   }else if(mode == "learn"){
-  playSongByNum();
-   firebase.setString(path, "freePlay");
+  String chal = firebaseReadChallenge();
+  if(chal == "hard"){
+    del = 2000;
+  }else{
+    del = 5000;
   }
-  else{
+  playSongByNum();
+   //firebase.setString(path, "freePlay");
+  }
+  else if(mode == "record"){
   record();
   //firebase.setString(path, "freePlay");
   }
