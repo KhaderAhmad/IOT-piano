@@ -47,6 +47,7 @@ class _AddSongState extends State<AddSong> {
   @override
   void dispose() {
     _updateCurrentModeToFreePlay();
+    _songNameController.dispose();
     super.dispose();
   }
 
@@ -82,19 +83,23 @@ class _AddSongState extends State<AddSong> {
 
   void _listenToRecordedChanges() {
     recordedStream.listen((DatabaseEvent event) async {
-      setState(() {
-        recordedData = event.snapshot.value.toString();
-      });
-      await _updateFirestoreWithSongData();
+      if (event.snapshot.value != null) {
+        setState(() {
+          recordedData = event.snapshot.value.toString();
+        });
+        await _updateFirestoreWithSongData();
+      }
     });
   }
 
   void _listenToDurationChanges() {
     durationStream.listen((DatabaseEvent event) async {
-      setState(() {
-        durationData = event.snapshot.value.toString();
-      });
-      await _updateFirestoreWithSongData();
+      if (event.snapshot.value != null) {
+        setState(() {
+          durationData = event.snapshot.value.toString();
+        });
+        await _updateFirestoreWithSongData();
+      }
     });
   }
 
@@ -113,16 +118,27 @@ class _AddSongState extends State<AddSong> {
           .doc(songName)
           .set(songData, SetOptions(merge: true)); // Merge to update only specific fields
     } else {
-      _showErrorMessage('Please insert a name for your song before recording.');
+      _showPopUpMessage('No song name', 'Please insert a name for your song before recording.');
     }
   }
 
-  void _showErrorMessage(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        duration: const Duration(seconds: 4),
-      ),
+  void _showPopUpMessage(String title, String message) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text(title),
+          content: Text(message),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: const Text('OK'),
+            ),
+          ],
+        );
+      },
     );
   }
 
