@@ -81,7 +81,7 @@ class _AddSongState extends State<AddSong> {
               .doc(FirebaseAuth.instance.currentUser!.uid)
               .collection('songs')
               .doc(songName)
-              .set({'recordedData': recordedData});
+              .set({'notes': recordedData});
         } else {
           _showErrorMessage('Please insert a name for your song - before exiting recoreding mode via hardware.');
         }
