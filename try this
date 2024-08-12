@@ -39,7 +39,6 @@
 #include <avr/power.h>  // Required for 16 MHz Adafruit Trinket
 #endif
 
-#define lastDebounceTime  0
 // VCC: Connect to 3.3V on the ESP32.
 // GND: Connect to GND on the ESP32.
 // SDA: Connect to GPIO 21 (I2C data line) on the ESP32.
@@ -696,12 +695,8 @@ void freeplay() {
     return;
   }
     currtouched = cap.touched();
-    unsigned long currentTime = millis();
-
-    if (currentTime - lastDebounceTime > 50) {
-      lastDebounceTime = currentTime;
-    for (int i = 0; i < 12; i++) {
-      if ((currtouched & _BV(i)) && !(lasttouched & _BV(i))) {
+    for (int i = 0; i < 10; i++) {
+      if ((currtouched & _BV(i)) && !(lasttouched & _BV(i)) && (currtouched!=4095)) {
         Serial.println(firstNote);
         if (firstNote == -1) {
           Serial.print(i);
@@ -717,7 +712,7 @@ void freeplay() {
         }
       }
 
-      if (!(currtouched & _BV(i)) && (lasttouched & _BV(i))) {
+      if (!(currtouched & _BV(i)) && (lasttouched & _BV(i)) && (currtouched!=4095)) {
         pixels.setPixelColor(i, pixels.Color(0, 0, 0));
         Serial.print(i);
         Serial.println(" released");
@@ -744,7 +739,6 @@ void freeplay() {
 
     pixels.show();
     lasttouched = currtouched;
-  }
   }
 }
 
