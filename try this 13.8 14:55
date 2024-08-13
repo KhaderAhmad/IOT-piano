@@ -26,7 +26,7 @@
 //green for 18
 
 // How many NeoPixels are attached to the Arduino?
-#define NUMPIXELS 11  // Popular NeoPixel ring size
+#define NUMPIXELS 27  // Popular NeoPixel ring size
 
 #define StartButton 14
 #define ExitButton 12
@@ -199,16 +199,16 @@ const int sample_count = 256;  // Adjust sample count if needed
 //int16_t samples[sample_count];
 //int16_t* samples;
 
-#define AT 261.63
-#define BT 293.66
-#define CT 329.63
-#define DT 349.23
-#define ET 392.00
-#define FT 440.00
-#define GT 493.88
-#define HT 523.25
-#define IT 552.37
-#define JT 581.55
+#define AT  261.63 //94.922 261.63
+#define BT  293.66 // 106.54
+#define CT  329.63// 119.59//329.63
+#define DT  349.23 //126.70//349.23
+#define ET  392.00//142.22//392.00
+#define FT  440.00//159.63//440.00
+#define GT  493.88//179.18// 493.88
+#define HT  523.25//189.84//523.25
+#define IT  552.37//200.40// 552.37
+#define JT  581.55//210.99//581.55
 #define NO 0
 #define I2S_PORT I2S_NUM_0
 
@@ -258,7 +258,7 @@ void playTone(float frequency) {
     samples[i] = (int16_t)(sample * 32767);
   }
   size_t bytesWritten;
-  for (int i = 0; i < (SAMPLE_RATE / sampleCount)/4 ; i++) {
+  for (int i = 0; i < (SAMPLE_RATE / sampleCount)/3 ; i++) {
     i2s_write(I2S_PORT, samples, sampleCount * sizeof(int16_t), &bytesWritten, portMAX_DELAY);
   }
 }
@@ -326,7 +326,9 @@ void playSongByNum() {
   for (int i = 0; i < song.length(); i++) {
     stop = digitalRead(ExitButton);
     if (stop < 1) {
+
       return;
+
     }
     char note = song[i];
     char noteNext = song[i + 1];
@@ -768,6 +770,11 @@ void freeplay() {
 
   while (true) {
     int stop = digitalRead(ExitButton);
+   
+        Serial.print("stop");
+        Serial.println(stop);
+                Serial.println(digitalRead(StartButton));
+
     if (stop < 1) {
       return;
     }  
@@ -801,12 +808,22 @@ void freeplay() {
       playTone((total_frq/count)*(2));
       lasttouched = currtouched;
       currtouched = cap.touched();
+      stop = digitalRead(ExitButton);
+      if (stop < 1) {
+         for(int i=10;i<28;i++)
+      {
+       pixels.setPixelColor(i, pixels.Color(0, 100, 128));
+      }
+      return;
+    }  
     }
 
-    
-    
-
-     pixels.clear();
+      for(int i=0;i<10;i++)
+      {
+          pixels.setPixelColor(i, pixels.Color(0, 0, 0));
+        
+      }
+   
      pixels.show();
   }
 }
@@ -948,6 +965,8 @@ void setup() {
   //   #if defined(__AVR_ATtiny85__) && (F_CPU == 16000000)
   // clock_prescale_set(clock_div_1);
   // #endif
+  cap.setThresholds(60,40);
+  
   pixels.begin();
   delay(1000);
   firebaseSetup();
@@ -973,9 +992,19 @@ void loop() {
     mode = firebase.getString(path);
 
     if (mode == "freePlay") {
+
+      for(int i=10;i<28;i++)
+      {
+        pixels.setPixelColor(i, pixels.Color(128, 0, 128));
+      }
+     
       freeplay();
       Serial.println("exit freeplay");
     } else if (mode == "learn") {
+      for(int i=10;i<28;i++)
+      {
+       pixels.setPixelColor(i, pixels.Color(2655, 165, 0));
+      }
       String chal = firebaseReadChallenge();
       if (chal == "hard") {
         del = 2000;
@@ -985,6 +1014,10 @@ void loop() {
       playSongByNum();
       //firebase.setString(path, "freePlay");
     } else if (mode == "record") {
+       for(int i=10;i<28;i++)
+      {
+       pixels.setPixelColor(i, pixels.Color(0, 0, 128));
+      }
       record();
       //firebase.setString(path, "freePlay");
     }
