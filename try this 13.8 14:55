@@ -258,7 +258,7 @@ void playTone(float frequency) {
     samples[i] = (int16_t)(sample * 32767);
   }
   size_t bytesWritten;
-  for (int i = 0; i < (SAMPLE_RATE / sampleCount)/3 ; i++) {
+  for (int i = 0; i < (SAMPLE_RATE / sampleCount)/(4.5) ; i++) {
     i2s_write(I2S_PORT, samples, sampleCount * sizeof(int16_t), &bytesWritten, portMAX_DELAY);
   }
 }
@@ -452,11 +452,11 @@ bool waitForTouchAndCheckIfCorrectTWOStrigs(String note, String next, uint16_t d
       }
     }
   }
-
+     delay(50);
   if (lenNote == 2) {
     Serial.println(" i am here i have two notes **********Two notes**************");
     for (uint8_t i = 0; i < 12; i++) {
-      if ((currtouched & _BV(i))) {
+      if ((currtouched& _BV(i))) {
         for (uint8_t j = 0; j < 12 && i != j; j++) {
           if ((currtouched & _BV(j))) {
             Serial.print(i);
@@ -1003,7 +1003,7 @@ void loop() {
     } else if (mode == "learn") {
       for(int i=10;i<28;i++)
       {
-       pixels.setPixelColor(i, pixels.Color(2655, 165, 0));
+       pixels.setPixelColor(i, pixels.Color(265, 165, 0));
       }
       String chal = firebaseReadChallenge();
       if (chal == "hard") {
@@ -1016,7 +1016,7 @@ void loop() {
     } else if (mode == "record") {
        for(int i=10;i<28;i++)
       {
-       pixels.setPixelColor(i, pixels.Color(0, 0, 128));
+    pixels.setPixelColor(i, pixels.Color(0, 0, 128));
       }
       record();
       //firebase.setString(path, "freePlay");
