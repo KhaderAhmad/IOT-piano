@@ -30,7 +30,7 @@
 
 #define StartButton 14
 #define ExitButton 12
-int touchedElectrodes[10];
+
 
 
 #ifndef _BV
@@ -57,8 +57,8 @@ int touchedElectrodes[10];
 #include <ESP32Firebase.h>
 #define _SSID "ICST"            // Your WiFi SSID
 #define _PASSWORD "arduino123"  // Your WiFi Password
-//#define REFERENCE_URL "https://ass2-cb1cb-default-rtdb.firebaseio.com/"
-#define REFERENCE_URL "https://iot-piano-default-rtdb.firebaseio.com/"
+#define REFERENCE_URL "https://ass2-cb1cb-default-rtdb.firebaseio.com/"
+//#define REFERENCE_URL "https://iot-piano-default-rtdb.firebaseio.com/"
 #define FIREBASE_AUTH "AIzaSyB1GPXvfeC1zr0cQ_-go7AmLtPTyiZrPR0"
 
 Firebase firebase(REFERENCE_URL);
@@ -182,34 +182,6 @@ void lightByChar(char note) {
     pixels.setPixelColor(led_num, pixels.Color(150, 0, 0));
   }
 }
-// 0 means thre courrent note 
-// 1 means the next note
-// 2 means red light (too long )
-//light by GRB
-void lightByString(String note, int mode_light) {
-  int red = 0, green =0 , blue =0;
-  if(mode_light == 0){
-    green = 150;
-  }else if(mode_light == 1){
-  red = 255;
-  green = 255;
-  }else if(mode_light == 2{
-      red = 150;
-  }
-
-  for(int i =0 ; i < note.length(); i++){
-    int led_num = getNumForChar(note[i]);
-  if (led_num < 0) {
-      // Set all pixel colors to 'off'
-      for(int j =0; j< 10; j++)
-          pixels.setPixelColor(j, pixels.Color(0, 0, 0));
-
-  } else {
-    pixels.setPixelColor(led_num, pixels.Color(green, red, blue));
-    }
-  }
-  pixels.show();
-}
 
 
 
@@ -227,16 +199,16 @@ const int sample_count = 256;  // Adjust sample count if needed
 //int16_t samples[sample_count];
 //int16_t* samples;
 
-#define AT  261.63 //94.922 261.63
-#define BT  293.66 // 106.54
-#define CT  329.63// 119.59//329.63
-#define DT  349.23 //126.70//349.23
-#define ET  392.00//142.22//392.00
-#define FT  440.00//159.63//440.00
-#define GT  493.88//179.18// 493.88
-#define HT  523.25//189.84//523.25
-#define IT  552.37//200.40// 552.37
-#define JT  581.55//210.99//581.55
+#define AT 261.63  //94.922 261.63
+#define BT 293.66  // 106.54
+#define CT 329.63  // 119.59//329.63
+#define DT 349.23  //126.70//349.23
+#define ET 392.00  //142.22//392.00
+#define FT 440.00  //159.63//440.00
+#define GT 493.88  //179.18// 493.88
+#define HT 523.25  //189.84//523.25
+#define IT 552.37  //200.40// 552.37
+#define JT 581.55  //210.99//581.55
 #define NO 0
 #define I2S_PORT I2S_NUM_0
 
@@ -286,7 +258,7 @@ void playTone(float frequency) {
     samples[i] = (int16_t)(sample * 32767);
   }
   size_t bytesWritten;
-  for (int i = 0; i < (SAMPLE_RATE / sampleCount)/(4.5) ; i++) {
+  for (int i = 0; i < (SAMPLE_RATE / sampleCount) / (4.5); i++) {
     i2s_write(I2S_PORT, samples, sampleCount * sizeof(int16_t), &bytesWritten, portMAX_DELAY);
   }
 }
@@ -320,8 +292,6 @@ int getNumForChar(char note) {
     case 'F': return 5;
     case 'G': return 6;
     case 'H': return 7;
-    case 'I': return 8;
-    case 'J': return 9;
     default: return -1;
   }
 }
@@ -342,421 +312,181 @@ char getCharForNum(int note) {
   }
 }
 
-int convertStringToNumber(String str) {
-  int result = 0;
-
-  // Iterate over each character in the string
-  for (int i = 0; i < str.length(); i++) {
-    char letter = str.charAt(i);
-
-    // Ensure the character is within 'A' to 'J'
-    if (letter >= 'A' && letter <= 'J') {
-      result |= 1 << (letter - 'A');
-    } else {
-      // Handle invalid characters if necessary
-      Serial.print("Invalid character: ");
-      Serial.println(letter);
-    }
-  }
-
-  return result;
-}
 
 
 void playSongByNum() {
-bool correct = true;
+  bool correct = true;
   //String song = "A,BC,D,E,F";
   //String dur = "1000,5000,1000,5000,1000";
   String song = firebaseReadSong();
   String dur = firebaseReadSongDuration();
   int num = 0;
+  String strduration = "";
   int stop;
-  String note="";
-  String next_note = "";
-  String note_dur="";
-  String next_note_dur = "";
-  int itr =0;
-  int count = 0;
-  int j = 0 ;
-  // calc the first note
-  while (song[itr] != ',' && song[itr] != NULL) {
-      //Serial.println("in while");
-      note += song[itr];
-      itr++;
-    }
-  lightByString(note,0);
-// calc the frist note dur
-  while (dur[j] != ',' && dur[j] != NULL) {
-      //Serial.println("in while");
-      note_dur += dur[j];
-      j++;
-    }
-    j++;
-
-  for (int i = itr; i < song.length(); i++ ) {
+  for (int i = 0; i < song.length(); i++) {
     stop = digitalRead(ExitButton);
     if (stop < 1) {
+
       return;
-      }
-      
-      // calc the next note
-      while (song[i] != ',' && song[i] != NULL) {
-      //Serial.println("in while");
-      next_note += song[i];
+    }
+    char note = song[i];
+    char noteNext = song[i + 1];
+    if (note == ',') continue;
+    strduration = "";
+
+    if (noteNext != ',' && noteNext != NULL)  /// i am hve two notes AB
+    {
+      Serial.println(song[i]);
+      Serial.println(song[i + 1]);
+
+      lightByChar(noteNext);
       i++;
     }
-    if(i >= song.length())
-    {
-      next_note = "";
-    }
 
-      while (dur[j] != ',' && dur[j] != NULL) {
-      //Serial.println("in while");
-      next_note_dur += dur[j];
-      j++;
-    }
-    j++;
-    if(j >= dur.length())
-    {
-      next_note_dur = "";
-    }
 
-    lightByString(next_note,1);
-    lightByString(note,0);
-    
-  delayForNextNote = millis();
-  if(note == "" || next_note_dur == ""){
-    Serial.println("end of song");
-    return;
-  }
-  correct = waitForTouchAndCheckIfCorrect(note,next_note,note_dur.toInt());
-  if(correct){
-    note = next_note;
-    note_dur = next_note_dur;
-     }else{
+    Serial.println(song[i]);
+    while (dur[num] != ',' && dur[num] != NULL) {
+      Serial.println("in while");
+      strduration += dur[num];
+      num++;
+    }
+    num++;
+    int Notedur = strduration.toInt();
+
+    lightByChar(note);  //// trun on
+    pixels.show();
+    char next1;
+    char next2;
+    String Next1 = "";
+    String Next2 = "";
+    if (noteNext != ',' && noteNext != NULL)  // i have to note like AB
+    {
+      next1 = (i >= (song.length() - 1)) ? (-1) : (song[i + 3]);
+      Next1 += next1;
+      next2 = (i >= (song.length() - 2)) ? (-1) : (song[i + 4]);
+      if (next2 != ',') {
+        Next2 += next2;
+      }
+
+    } else {
+      next1 = (i >= (song.length() - 1)) ? (-1) : (song[i + 2]);
+      Next1 += next1;
+      next2 = (i >= (song.length() - 2)) ? (-1) : (song[i + 3]);
+      if (next2 != ',') {
+        Next2 += next2;
+      }
+    }
+    delayForNextNote = millis();
+    String strNote = "";
+    if (noteNext != ',' && noteNext != NULL) {
+      strNote += note;
+      strNote += noteNext;
+    } else {
+      strNote += note;
+    }
+    Serial.println("i am in play song and this is my note and next note");
+   Serial.println(strNote);
+   Serial.println(Next1 + Next2);
+    correct = waitForTouchAndCheckIfCorrectTWOStrigs(strNote, Next1 + Next2, Notedur);
+    pixels.clear();
+    pixels.show();
+    if (!correct) {
+
       return;
-     }
+    }
   }
-
-
 }
 
-
-bool waitForTouchAndCheckIfCorrect(String note,String next_note,int note_dur){
-    
+bool waitForTouchAndCheckIfCorrectTWOStrigs(String note, String next, uint16_t dur) {
   Serial.print("waiting for correct touch with note ");
   Serial.print(note);
   Serial.print(" and next ");
-  Serial.print(next_note);
+  Serial.print(next);
   Serial.print(" and duration ");
-  Serial.println(note_dur);
+  Serial.println(dur);
   int stop = 1;
-  bool correct = true;
 
   currtouched = cap.touched();
-  while (!currtouched ) {  /// waiting for any touch
+  while (!currtouched && currtouched != lasttouched) {  /// waiting for any touch
     stop = digitalRead(ExitButton);
     //Serial.print(stop);
     if (stop < 1) {
       return false;
     }
-    //delay(50);
+    delay(50);
     pixels.show();
     currtouched = cap.touched();
-
-    if (millis() - delayForNextNote >= del) { // check dur by mode
-        lightByString("ABCDEFGHIJ",2);
+    if (millis() - delayForNextNote >= del) {
       Serial.println("you suck kys");
       return false;
     }
   }
-  //whileTouchedPlaySoundForLearning();
-
-
-///// play sound and give the suck second chance
-  int green = 0, red = 0;
-  unsigned long startMillis = millis(), currentMillis;
-  int note_vec = convertStringToNumber(note);
-
-
-
-
-  while (currtouched) {
-  currentMillis = millis();
-  if(currtouched == note_vec ){
-    if(currentMillis - startMillis >= dur){
-      lightByString(note,2);
-      lightByString(next_note, 0);
-    }else{ // changing color to red, correct touched for dur 
-      green = (int)((float)((float)128 * (float)(millis() / (float)(dur + startMillis))));
-      for(int i =0 ; i < note.length(); i++){
-    int led_num = getNumForChar(note[i]);
-    pixels.setPixelColor(led_num, pixels.Color(150 - green, green, 0));
-      }
-    pixels.show();
-      }
-  }else{
-    while()
-    if(millis()- currentMillis > 70){ // u suck even after a chance
-        lightByString("ABCDEFGHIJ", 2);
-        return false;
-    }else
-      currtouched=cap.touched();
-      continue; 
-  }
-   // currtouched = cap.touched();
-   for (int i = 0; i < 10; i++) {
-    // Check if electrode 'i' is touched
-    if(currtouched & _BV(i)){
-        touchedElectrodes[i] = 1;
-    }
-    touchedElectrodes[i] = 0;
-  }
-      //currtouched = cap.touched();
-    int total_frq = 0;
-    int count =1;
-   for (int i = 0; i < 10; i++) {
-    // Check if electrode 'i' is touched
-    if(currtouched & _BV(i)){
-      total_frq += getFreq(i);
-      count++;
-      //lightByNum(i);
+  while (currtouched == 0) {
+    //return false;
+    currtouched = cap.touched();
+    stop = digitalRead(ExitButton);
+    //Serial.print(stop);
+    if (stop < 1) {
+      return false;
     }
   }
-     playTone((total_frq/count)*(2));
+  int lenNote = note.length();
+  int lenNext = next.length();
 
-     pixels.show();
+  if (lenNote == 1) {
+    for (uint8_t i = 0; i < 12; i++) {
+      if ((currtouched & _BV(i))) {
+        Serial.print(i);
+        Serial.println(" touched");
+        int correctNote1 = getNumForChar(note[0]);
+
+        if (lenNext != 1) {
+          while_touched_play_sound_for_learningUpdate(i, -1, getNumForChar(next[0]), getNumForChar(next[1]), dur, correctNote1, -1);
+        }
+        while_touched_play_sound_for_learningUpdate(i, -1, getNumForChar(next[0]), -1, dur, correctNote1, -1);
+        if (i != correctNote1) {
+          Serial.println("Incorrect note");
+          return false;
+        }
+        // Reset lasttouched to allow detection of the same note again
+        lasttouched = 0;
+      }
+    }
+  }
+  delay(50);
+  if (lenNote == 2) {
+    Serial.println(" i am here i have two notes **********Two notes**************");
+    for (uint8_t i = 0; i < 12; i++) {
+      if ((currtouched & _BV(i))) {
+        for (uint8_t j = 0; j < 12 && i != j; j++) {
+          if ((currtouched & _BV(j))) {
+            Serial.print(i);
+            Serial.println(" touched");
+            Serial.print(j);
+            Serial.println(" touched");
+            int correctNote1 = getNumForChar(note[0]);
+            int correctNote2 = getNumForChar(note[1]);
+            if (lenNext != 1) {
+              while_touched_play_sound_for_learningUpdate(i, j, getNumForChar(next[0]), getNumForChar(next[1]), dur, correctNote1, correctNote2);
+            }
+            while_touched_play_sound_for_learningUpdate(i, j, getNumForChar(next[0]), -1, dur, correctNote1, correctNote2);
+            if (!(((i == correctNote1) && (j == correctNote2)) || ((j == correctNote1) && (i == correctNote2)))) {
+              Serial.println("Incorrect 2 note");
+              return false;
+            }
+            // Reset lasttouched to allow detection of the same note again
+            lasttouched = 0;
+          }
+        }
+      }
+    }
   }
 
-
+  // Update lasttouched at the end of the loop
+  lasttouched = currtouched;
+  Serial.println("Correct note");
+  return true;
 }
-
-
-whileTouchedPlaySoundForLearning(){
-  // int green = 0, red = 0;
-  // unsigned long startMillis = millis(), currentMillis;
-  // int note_vec = convertStringToNumber(correct_note);
-
-
-
-
-  // while (currtouched) {
-  //   currentMillis = millis();
-  // if(currtouched == note_vec ){
-  //   if(currentMillis - startMillis >= dur){
-  //     lightByString(note,2);
-  //     lightByString(next_note, 0);
-  //   }else{ // changing color to red, correct touched for dur 
-  //     green = (int)((float)((float)128 * (float)(millis() / (float)(dur + startMillis))));
-  //     for(int i =0 ; i < note.length(); i++){
-  //   int led_num = getNumForChar(note[i]);
-  //   pixels.setPixelColor(led_num, pixels.Color(150 - green, green, 0));
-  //     }
-  //   pixels.show();
-  //     }
-  // }else{
-  //   if(millis()- currentMillis > 70){ // u suck even after a chance
-  //       lightByString("ABCDEFGHIJ", 2);
-  //   }else
-  //     currtouched=cap.touched();
-  // }
-  //  // currtouched = cap.touched();
-  //  for (int i = 0; i < 10; i++) {
-  //   // Check if electrode 'i' is touched
-  //   if(currtouched & _BV(i)){
-  //       touchedElectrodes[i] = 1;
-  //   }
-  //   touchedElectrodes[i] = 0;
-  // }
-  //     //currtouched = cap.touched();
-  //   int total_frq = 0;
-  //   int count =1;
-  //  for (int i = 0; i < 10; i++) {
-  //   // Check if electrode 'i' is touched
-  //   if(currtouched & _BV(i)){
-  //     total_frq += getFreq(i);
-  //     count++;
-  //     //lightByNum(i);
-  //   }
-  // }
-  //    playTone((total_frq/count)*(2));
-
-  //    pixels.show();
-  // }
-}
-//void playSongByNum() {
-//   bool correct = true;
-//   //String song = "A,BC,D,E,F";
-//   //String dur = "1000,5000,1000,5000,1000";
-//   String song = firebaseReadSong();
-//   String dur = firebaseReadSongDuration();
-//   int num = 0;
-//   String strduration = "";
-//   int stop;
-//   for (int i = 0; i < song.length(); i++) {
-//     stop = digitalRead(ExitButton);
-//     if (stop < 1) {
-
-//       return;
-
-//     }
-//     char note = song[i];
-//     char noteNext = song[i + 1];
-//     if (note == ',') continue;
-//     strduration = "";
-
-//     if (noteNext != ',' && noteNext != NULL)  /// i am hve two notes AB
-//     {
-//       Serial.println(song[i]);
-//       Serial.println(song[i + 1]);
-
-//       lightByChar(noteNext);
-//       i++;
-//     }
-
-
-//     Serial.println(song[i]);
-//     while (dur[num] != ',' && dur[num] != NULL) {
-//       Serial.println("in while");
-//       strduration += dur[num];
-//       num++;
-//     }
-//     num++;
-//     int Notedur = strduration.toInt();
-
-//     lightByChar(note);  //// trun on
-//     pixels.show();
-//     char next1;
-//     char next2;
-//     String Next1 = "";
-//     String Next2 = "";
-//     if (noteNext != ',' && noteNext != NULL)  // i have to note like AB
-//     {
-//       next1 = (i >= (song.length() - 1)) ? (-1) : (song[i + 3]);
-//       Next1 += next1;
-//       next2 = (i >= (song.length() - 1)) ? (-1) : (song[i + 4]);
-//       if (next2 != ',') {
-//         Next2 += next2;
-//       }
-
-//     } else {
-//       next1 = (i >= (song.length() - 1)) ? (-1) : (song[i + 2]);
-//       Next1 += next1;
-//       next2 = (i >= (song.length() - 1)) ? (-1) : (song[i + 3]);
-//       if (next2 != ',') {
-//         Next2 += next2;
-//       }
-//     }
-//     delayForNextNote = millis();
-//     String strNote = "";
-//     if (noteNext != ',' && noteNext != NULL) {
-//       strNote += note;
-//       strNote += noteNext;
-//     } else {
-//       strNote += note;
-//     }
-
-//     correct = waitForTouchAndCheckIfCorrectTWOStrigs(strNote, Next1 + Next2, Notedur);
-//     pixels.clear();
-//     pixels.show();
-//     if (!correct) {
-
-//       return;
-//     }
-//   }
-// }
-
-// bool waitForTouchAndCheckIfCorrectTWOStrigs(String note, String next, uint16_t dur) {
-//   Serial.print("waiting for correct touch with note ");
-//   Serial.print(note);
-//   Serial.print(" and next ");
-//   Serial.print(next);
-//   Serial.print(" and duration ");
-//   Serial.println(dur);
-//   int stop = 1;
-
-//   currtouched = cap.touched();
-//   while (!currtouched && currtouched != lasttouched) {  /// waiting for any touch
-//     stop = digitalRead(ExitButton);
-//     //Serial.print(stop);
-//     if (stop < 1) {
-//       return false;
-//     }
-//     delay(50);
-//     pixels.show();
-//     currtouched = cap.touched();
-//     if (millis() - delayForNextNote >= del) {
-//       Serial.println("you suck kys");
-//       return false;
-//     }
-//   }
-//   while (currtouched == 0) {
-//     //return false;
-//     currtouched = cap.touched();
-//     stop = digitalRead(ExitButton);
-//     //Serial.print(stop);
-//     if (stop < 1) {
-//       return false;
-//     }
-//   }
-//   int lenNote = note.length();
-//   int lenNext = next.length();
-
-//   if (lenNote == 1) {
-//     for (uint8_t i = 0; i < 12; i++) {
-//       if ((currtouched & _BV(i))) {
-//         Serial.print(i);
-//         Serial.println(" touched");
-//         int correctNote1 = getNumForChar(note[0]);
-
-//         if (lenNext != 1) {
-//           while_touched_play_sound_for_learningUpdate(i, -1, getNumForChar(next[0]), getNumForChar(next[1]), dur, correctNote1, -1);
-//         }
-//         while_touched_play_sound_for_learningUpdate(i, -1, getNumForChar(next[0]), -1, dur, correctNote1, -1);
-//         if (i != correctNote1) {
-//           Serial.println("Incorrect note");
-//           return false;
-//         }
-//         // Reset lasttouched to allow detection of the same note again
-//         lasttouched = 0;
-//       }
-//     }
-//   }
-//      delay(50);
-//   if (lenNote == 2) {
-//     Serial.println(" i am here i have two notes **********Two notes**************");
-//     for (uint8_t i = 0; i < 12; i++) {
-//       if ((currtouched& _BV(i))) {
-//         for (uint8_t j = 0; j < 12 && i != j; j++) {
-//           if ((currtouched & _BV(j))) {
-//             Serial.print(i);
-//             Serial.println(" touched");
-//             Serial.print(j);
-//             Serial.println(" touched");
-//             int correctNote1 = getNumForChar(note[0]);
-//             int correctNote2 = getNumForChar(note[1]);
-//             if (lenNext != 1) {
-//               while_touched_play_sound_for_learningUpdate(i, j, getNumForChar(next[0]), getNumForChar(next[1]), dur, correctNote1, correctNote2);
-//             }
-//             while_touched_play_sound_for_learningUpdate(i, j, getNumForChar(next[0]), -1, dur, correctNote1, correctNote2);
-//             if (!(((i == correctNote1) && (j == correctNote2)) || ((j == correctNote1) && (i == correctNote2)))) {
-//               Serial.println("Incorrect 2 note");
-//               return false;
-//             }
-//             // Reset lasttouched to allow detection of the same note again
-//             lasttouched = 0;
-//           }
-//         }
-//       }
-//     }
-//   }
-
-//   // Update lasttouched at the end of the loop
-//   lasttouched = currtouched;
-//   Serial.println("Correct note");
-//   return true;
-// }
-
 
 void while_touched_play_sound_for_learningUpdate(int i, int j, int next1, int next2, uint16_t dur, int correctNote1, int correctNote2) {
   int green = 0;
@@ -776,14 +506,18 @@ void while_touched_play_sound_for_learningUpdate(int i, int j, int next1, int ne
           if (next2 != -1) {
             lightByNum(next2);
           }
-          lightByNum(next1);
+          if (next1 != -1) {
+            lightNextByNum(next1);
+          }
         } else {
           green = (int)((float)((float)128 * (float)(millis() / (float)(dur + startMillis))));
           Serial.println(green);
           pixels.setPixelColor(i, pixels.Color(150 - green, green, 0));
 
           pixels.setPixelColor(j, pixels.Color(150 - green, green, 0));
-          lightNextByNum(next1);
+          if (next1 != -1) {
+            lightNextByNum(next1);
+          }
           if (next2 != -1) {
             lightNextByNum(next2);
           }
@@ -824,7 +558,9 @@ void while_touched_play_sound_for_learningUpdate(int i, int j, int next1, int ne
           if (next2 != -1) {
             lightByNum(next2);
           }
-          lightByNum(next1);
+          if (next1 != -1) {
+            lightNextByNum(next1);
+          }
         } else {
           green = (int)((float)((float)128 * (float)(millis() / (float)(dur + startMillis))));
           Serial.println(green);
@@ -832,7 +568,9 @@ void while_touched_play_sound_for_learningUpdate(int i, int j, int next1, int ne
           if (next2 != -1) {
             lightNextByNum(next2);
           }
-          lightNextByNum(next1);
+          if (next1 != -1) {
+            lightNextByNum(next1);
+          }
 
           //lightByNum(i);
           Serial.println("NOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO in if baby");
@@ -1010,7 +748,7 @@ float getFreq(int i) {
 //     lasttouched = currtouched;
 //   }
 // }
-
+int touchedElectrodes[10];
 
 void updateTouchedSet() {
   //uint16_t currtouched = cap.touched();
@@ -1023,7 +761,7 @@ void updateTouchedSet() {
   }
   for (int i = 0; i < 10; i++) {
     // Check if electrode 'i' is touched
-    if (currtouched & _BV(i) && currtouched!=1023 && currtouched!=4095) {
+    if (currtouched & _BV(i) && currtouched != 1023 && currtouched != 4095) {
       Serial.println("adding i%%%%%%%%%%%%%%%%%%");
       touchedElectrodes[i] = 1;  // Add the touched electrode to the set
     }
@@ -1034,68 +772,63 @@ void freeplay() {
   Serial.println("in freeplay");
 
   currtouched = cap.touched();
-   for (int i = 0; i < 10; i++) {
+  for (int i = 0; i < 10; i++) {
     // Check if electrode 'i' is touched
     touchedElectrodes[i] = 0;
   }
 
   while (true) {
     int stop = digitalRead(ExitButton);
-   
-        Serial.print("stop");
-        Serial.println(stop);
-                Serial.println(digitalRead(StartButton));
+
+    Serial.print("stop");
+    Serial.println(stop);
+    Serial.println(digitalRead(StartButton));
 
     if (stop < 1) {
       return;
-    }  
-    lasttouched =currtouched;
-    currtouched=cap.touched();
+    }
+    lasttouched = currtouched;
+    currtouched = cap.touched();
 
-    
-      updateTouchedSet();
-      
-    
+
+    updateTouchedSet();
+
+
     int total_frq = 0;
     Serial.println("Currently touched electrodes: ");
     //  Serial.println(touchedElectrodes.first());
     //    Serial.println(touchedElectrodes.next());
     //      Serial.println(touchedElectrodes.last());
-    int count =1;
+    int count = 1;
     for (int it = 0; it < 10; it++) {
-      if(touchedElectrodes[it]==1)
-      {
-          Serial.print(it);
-      total_frq += getFreq(it);
-            count++;
+      if (touchedElectrodes[it] == 1) {
+        Serial.print(it);
+        total_frq += getFreq(it);
+        count++;
 
-      lightByNum(it);
+        lightByNum(it);
       }
-      
     }
     pixels.show();
 
     while (lasttouched == currtouched) {
-      playTone((total_frq/count)*(2));
+      playTone((total_frq / count) * (2));
       lasttouched = currtouched;
       currtouched = cap.touched();
       stop = digitalRead(ExitButton);
       if (stop < 1) {
-         for(int i=10;i<28;i++)
-      {
-       pixels.setPixelColor(i, pixels.Color(0, 100, 128));
+        for (int i = 10; i < 28; i++) {
+          pixels.setPixelColor(i, pixels.Color(0, 100, 128));
+        }
+        return;
       }
-      return;
-    }  
     }
 
-      for(int i=0;i<10;i++)
-      {
-          pixels.setPixelColor(i, pixels.Color(0, 0, 0));
-        
-      }
-   
-     pixels.show();
+    for (int i = 0; i < 10; i++) {
+      pixels.setPixelColor(i, pixels.Color(0, 0, 0));
+    }
+
+    pixels.show();
   }
 }
 
@@ -1236,8 +969,8 @@ void setup() {
   //   #if defined(__AVR_ATtiny85__) && (F_CPU == 16000000)
   // clock_prescale_set(clock_div_1);
   // #endif
-  cap.setThresholds(60,40);
-  
+  cap.setThresholds(60, 40);
+
   pixels.begin();
   delay(1000);
   firebaseSetup();
@@ -1256,11 +989,6 @@ void loop() {
   //Serial.println("*************************starting from loop*********************************************************************");
   int start = digitalRead(StartButton);
 
-
-  for(int i=10;i<28;i++)
-      {
-       pixels.setPixelColor(i, pixels.Color(255, 255, 255));
-      }
   if (start < 1) {
     Serial.println("starting mode");
     String mode = "freePlay";
@@ -1269,17 +997,15 @@ void loop() {
 
     if (mode == "freePlay") {
 
-      for(int i=10;i<28;i++)
-      {
+      for (int i = 10; i < 28; i++) {
         pixels.setPixelColor(i, pixels.Color(128, 0, 128));
       }
-     
+
       freeplay();
       Serial.println("exit freeplay");
     } else if (mode == "learn") {
-      for(int i=10;i<28;i++)
-      {
-       pixels.setPixelColor(i, pixels.Color(255, 165, 0));
+      for (int i = 10; i < 28; i++) {
+        pixels.setPixelColor(i, pixels.Color(255, 165, 0));
       }
       String chal = firebaseReadChallenge();
       if (chal == "hard") {
@@ -1290,21 +1016,14 @@ void loop() {
       playSongByNum();
       //firebase.setString(path, "freePlay");
     } else if (mode == "record") {
-       for(int i=10;i<28;i++)
-      {
-    pixels.setPixelColor(i, pixels.Color(0, 0, 128));
+      for (int i = 10; i < 28; i++) {
+        pixels.setPixelColor(i, pixels.Color(0, 0, 128));
       }
       record();
       //firebase.setString(path, "freePlay");
     }
-
-      for(int i=10;i<28;i++)
-      {
-       pixels.setPixelColor(i, pixels.Color(255, 255, 255));
-      }
   }
-  
 
   //freeplay();
-  pixels.show();
+  // pixels.show();
 }
