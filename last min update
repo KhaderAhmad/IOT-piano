@@ -3,146 +3,184 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 
-class AddSong extends StatefulWidget {
-  final String userName;
-  final Map<String, dynamic> songs;
+class LearnPage extends StatefulWidget {
+  final String songId;
 
-  const AddSong({
-    Key? key,
-    required this.userName,
-    required this.songs,
-  }) : super(key: key);
+  LearnPage({Key? key, required this.songId}) : super(key: key);
 
   @override
-  State<AddSong> createState() => _AddSongState();
+  _LearnPageState createState() => _LearnPageState();
 }
 
-class _AddSongState extends State<AddSong> {
-  final TextEditingController _songNameController = TextEditingController();
-  late DatabaseReference recordedRef;
-  late DatabaseReference durationRef;
-  late Stream<DatabaseEvent> recordedStream;
-  late Stream<DatabaseEvent> durationStream;
+class _LearnPageState extends State<LearnPage> {
+  // Mapping letters back to musical notes
+  final Map<String, String> letterToNote = {
+    'A': 'Do',
+    'B': 'Re',
+    'C': 'Me',
+    'D': 'Fa',
+    'E': 'Sol',
+    'F': 'La',
+    'G': 'Si',
+    'H': 'Do2',
+    'I': 'Re2',
+    'J': 'Me2',
+  };
 
-  String? recordedData;
-  String? durationData;
+  bool _showEasyHardButtons = true; // Control visibility of Easy and Hard buttons
 
-  @override
-  void initState() {
-    super.initState();
-    _updateCurrentModeToRecord();
+  Future<Map<String, dynamic>?> _fetchSongDetails() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return null;
 
-    recordedRef = FirebaseDatabase.instance.ref('/recorded');
-    durationRef = FirebaseDatabase.instance.ref('/duration');
+    final doc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .collection('songs')
+        .doc(widget.songId)
+        .get();
 
-    recordedStream = recordedRef.onValue;
-    durationStream = durationRef.onValue;
-
-    _listenToRecordedChanges();
-    _listenToDurationChanges();
+    return doc.data();
   }
 
-  @override
-  void dispose() {
-    _updateCurrentModeToFreePlay();
-    _songNameController.dispose();
-    super.dispose();
-  }
+  void _switchToFreePlayMode() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
 
-  void _updateCurrentModeToRecord() async {
-    String userId = FirebaseAuth.instance.currentUser!.uid;
-
-    // Update in Firestore
+    // Update Firebase challenge to "None"
     await FirebaseFirestore.instance
         .collection('users')
-        .doc(userId)
-        .update({'currentMode': 'record'});
+        .doc(user.uid)
+        .update({'currentMode': 'freePlay', 'challenge': 'None', 'currentSong': 'None'});
 
-    // Update in Realtime Database
-    await FirebaseDatabase.instance.ref().update({'currentMode': 'record'});
-  }
+    // Update Realtime Database
+    await FirebaseDatabase.instance
+        .reference()
+        .update({'currentSong': 'None'});
 
-  void _updateCurrentModeToFreePlay() async {
-    String userId = FirebaseAuth.instance.currentUser!.uid;
-
-    // Update in Firestore
-    await FirebaseFirestore.instance
-        .collection('users')
-        .doc(userId)
+    await FirebaseDatabase.instance
+        .reference()
         .update({'currentMode': 'freePlay'});
+    await FirebaseDatabase.instance
+        .reference()
+        .update({'challenge': 'None'});
 
-    // Update in Realtime Database
-    await FirebaseDatabase.instance.ref().update({'currentMode': 'freePlay'});
+    // Navigate back
+    Navigator.of(context).pop();
   }
 
-  void _listenToRecordedChanges() {
-    recordedStream.listen((DatabaseEvent event) async {
-      if (event.snapshot.value != null) {
-        setState(() {
-          recordedData = event.snapshot.value.toString();
-        });
-        await _updateFirestoreWithSongData();
-      }
+  void _updateCurrentMode(String mode, String challenge, String mappedNotes, String unmappedNotes) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    // Update Firestore currentMode, challenge, and currentSong
+    await FirebaseFirestore.instance.collection('users').doc(user.uid).update({
+      'currentMode': mode,
+      'challenge': challenge,
+      'currentSong': mappedNotes, // Update currentSong to the mappedNotes
     });
+
+    // Update Realtime Database currentSong with unmappedNotes
+    await FirebaseDatabase.instance
+        .reference()
+        .update({'currentSong': unmappedNotes});
+
+    await FirebaseDatabase.instance
+        .reference()
+        .update({'currentMode': mode});
+
+    await FirebaseDatabase.instance
+        .reference()
+        .update({'challenge': challenge});
   }
 
-  void _listenToDurationChanges() {
-    durationStream.listen((DatabaseEvent event) async {
-      if (event.snapshot.value != null) {
-        setState(() {
-          durationData = event.snapshot.value.toString();
-        });
-        await _updateFirestoreWithSongData();
-      }
-    });
-  }
+  void _showEasyModePopup(BuildContext context) async {
+    final songData = await _fetchSongDetails();
+    if (songData == null) return;
 
-  Future<void> _updateFirestoreWithSongData() async {
-    String songName = _songNameController.text;
+    final notes = songData['notes'] as String;
+    final mappedNotes = notes.split(',')
+        .map((note) => letterToNote[note])
+        .where((note) => note != null) // Filter out null values
+        .join(', ');
+    final unmappedNotes = notes; // Store unmapped notes
 
-    if (songName.isNotEmpty) {
-      final userId = FirebaseAuth.instance.currentUser!.uid;
-      final songRef = FirebaseFirestore.instance
-          .collection('users')
-          .doc(userId)
-          .collection('songs')
-          .doc(songName);
-
-      final songSnapshot = await songRef.get();
-
-      Map<String, dynamic> songData = {};
-      if (recordedData != null) songData['notes'] = recordedData;
-      if (durationData != null) songData['duration'] = durationData;
-
-      if (songSnapshot.exists) {
-        // If the song already exists, update the existing document
-        await songRef.set(songData, SetOptions(merge: true)); // Merge to update only specific fields
-        _showPopUpMessage('Song Updated', 'The song "$songName" was updated successfully.');
-      } else {
-        // If the song does not exist, create a new document
-        await songRef.set(songData);
-        _showPopUpMessage('Song Added', 'The song "$songName" was added successfully.');
-      }
-      // Clear the song name field for the next input
-      //_songNameController.clear();
-    } else {
-      _showPopUpMessage('WARNING', 'Please insert a name for your song before recording.');
-    }
-  }
-
-  void _showPopUpMessage(String title, String message) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text(title),
-          content: Text(message),
-          actions: [
+          title: Text(
+            'Easy Mode',
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: Colors.blue,
+            ),
+          ),
+          content: Text(
+            'YOU ARE NOW IN EASY MODE, LET\'S LEARN AND HAVE FUN',
+            style: TextStyle(
+              fontSize: 18,
+              color: Colors.black,
+            ),
+          ),
+          actions: <Widget>[
             TextButton(
+              child: Text('OK'),
               onPressed: () {
+                _updateCurrentMode('learn', 'easy', mappedNotes, unmappedNotes); // Set currentMode to 'learn', challenge to 'easy', and update currentSong with mappedNotes and unmappedNotes
+                setState(() {
+                  _showEasyHardButtons = false; // Hide Easy and Hard buttons
+                });
                 Navigator.of(context).pop();
               },
-              child: const Text('OK'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showHardModePopup(BuildContext context) async {
+    final songData = await _fetchSongDetails();
+    if (songData == null) return;
+
+    final notes = songData['notes'] as String;
+    final mappedNotes = notes.split(',')
+        .map((note) => letterToNote[note])
+        .where((note) => note != null) // Filter out null values
+        .join(', ');
+    final unmappedNotes = notes; // Store unmapped notes
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text(
+            'Hard Mode',
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: Colors.red,
+            ),
+          ),
+          content: Text(
+            'YOU ARE NOW IN HARD MODE, LET\'S CHALLENGE OURSELVES!',
+            style: TextStyle(
+              fontSize: 18,
+              color: Colors.black,
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: Text('OK'),
+              onPressed: () {
+                _updateCurrentMode('learn', 'hard', mappedNotes, unmappedNotes); // Set currentMode to 'learn', challenge to 'hard', and update currentSong with mappedNotes and unmappedNotes
+                setState(() {
+                  _showEasyHardButtons = false; // Hide Easy and Hard buttons
+                });
+                Navigator.of(context).pop();
+              },
             ),
           ],
         );
@@ -155,39 +193,137 @@ class _AddSongState extends State<AddSong> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          'Add a new song for ${widget.userName}',
+          'Learning ${widget.songId}',
           style: const TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              fontFamily: 'Plus Jakarta Sans'),
-        ),
-      ),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            children: [
-              TextField(
-                controller: _songNameController,
-                decoration: InputDecoration(
-                  labelText: 'Song Name',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12.0),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-              Text(
-                "Please enter a name then press the start button to start recording",
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.normal,
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ],
+            fontSize: 28,
+            fontWeight: FontWeight.bold,
+            fontFamily: 'Plus Jakarta Sans',
+            color: Colors.white,
           ),
         ),
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back),
+          onPressed: () {
+            _switchToFreePlayMode(); // Switch to freePlay mode on back arrow press
+          },
+        ),
+      ),
+      body: FutureBuilder<Map<String, dynamic>?>(
+        future: _fetchSongDetails(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          if (snapshot.hasError) {
+            return const Center(child: Text('Something went wrong'));
+          }
+
+          if (!snapshot.hasData || snapshot.data == null) {
+            return const Center(child: Text('No song details available'));
+          }
+
+          final songData = snapshot.data!;
+          final notes = songData['notes'] as String;
+          final mappedNotes = notes.split(',')
+              .map((note) => letterToNote[note])
+              .where((note) => note != null) // Filter out null values
+              .join(', ');
+
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  'Learning: ${widget.songId}',
+                  style: const TextStyle(
+                    fontSize: 36,
+                    fontWeight: FontWeight.bold,
+                    fontFamily: 'Plus Jakarta Sans',
+                    color: Colors.deepPurple,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  'Notes: $mappedNotes',
+                  style: const TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.w600,
+                    fontFamily: 'Plus Jakarta Sans',
+                    color: Colors.indigo,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 40),
+                if (_showEasyHardButtons) // Show Easy and Hard buttons conditionally
+                  Column(
+                    children: [
+                      ElevatedButton(
+                        onPressed: () {
+                          _showEasyModePopup(context); // Show Easy mode popup
+                        },
+                        style: ButtonStyle(
+                          backgroundColor:
+                              MaterialStateProperty.resolveWith((states) {
+                            if (states.contains(MaterialState.pressed)) {
+                              return Colors.black26;
+                            }
+                            return const Color(0xFF4B39EF);
+                          }),
+                          shape:
+                              MaterialStateProperty.all<RoundedRectangleBorder>(
+                            RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12.0),
+                            ),
+                          ),
+                        ),
+                        child: const Text(
+                          'Easy',
+                          style: TextStyle(
+                            color: Color(0xFFF1F4F8),
+                            fontFamily: 'Plus Jakarta Sans',
+                            fontWeight: FontWeight.bold,
+                            fontSize: 24,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      ElevatedButton(
+                        onPressed: () {
+                          _showHardModePopup(context); // Show Hard mode popup
+                        },
+                        style: ButtonStyle(
+                          backgroundColor:
+                              MaterialStateProperty.resolveWith((states) {
+                            if (states.contains(MaterialState.pressed)) {
+                              return Colors.black26;
+                            }
+                            return const Color(0xFF4B39EF);
+                          }),
+                          shape:
+                              MaterialStateProperty.all<RoundedRectangleBorder>(
+                            RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12.0),
+                            ),
+                          ),
+                        ),
+                        child: const Text(
+                          'Hard',
+                          style: TextStyle(
+                            color: Color(0xFFF1F4F8),
+                            fontFamily: 'Plus Jakarta Sans',
+                            fontWeight: FontWeight.bold,
+                            fontSize: 24,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+              ],
+            ),
+          );
+        },
       ),
     );
   }
