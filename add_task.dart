@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
@@ -21,8 +23,8 @@ class _AddSongState extends State<AddSong> {
   final TextEditingController _songNameController = TextEditingController();
   late DatabaseReference recordedRef;
   late DatabaseReference durationRef;
-  late Stream<DatabaseEvent> recordedStream;
-  late Stream<DatabaseEvent> durationStream;
+  StreamSubscription<DatabaseEvent>? recordedSubscription;
+  StreamSubscription<DatabaseEvent>? durationSubscription;
 
   String? recordedData;
   String? durationData;
@@ -35,9 +37,6 @@ class _AddSongState extends State<AddSong> {
     recordedRef = FirebaseDatabase.instance.ref('/recorded');
     durationRef = FirebaseDatabase.instance.ref('/duration');
 
-    recordedStream = recordedRef.onValue;
-    durationStream = durationRef.onValue;
-
     _listenToRecordedChanges();
     _listenToDurationChanges();
   }
@@ -45,6 +44,7 @@ class _AddSongState extends State<AddSong> {
   @override
   void dispose() {
     _updateCurrentModeToFreePlay();
+    _cancelSubscriptions();
     _songNameController.dispose();
     super.dispose();
   }
@@ -76,7 +76,7 @@ class _AddSongState extends State<AddSong> {
   }
 
   void _listenToRecordedChanges() {
-    recordedStream.listen((DatabaseEvent event) async {
+    recordedSubscription = recordedRef.onValue.listen((DatabaseEvent event) async {
       if (event.snapshot.value != null) {
         setState(() {
           recordedData = event.snapshot.value.toString();
@@ -87,7 +87,7 @@ class _AddSongState extends State<AddSong> {
   }
 
   void _listenToDurationChanges() {
-    durationStream.listen((DatabaseEvent event) async {
+    durationSubscription = durationRef.onValue.listen((DatabaseEvent event) async {
       if (event.snapshot.value != null) {
         setState(() {
           durationData = event.snapshot.value.toString();
@@ -95,6 +95,11 @@ class _AddSongState extends State<AddSong> {
         await _updateFirestoreWithSongData();
       }
     });
+  }
+
+  void _cancelSubscriptions() {
+    recordedSubscription?.cancel();
+    durationSubscription?.cancel();
   }
 
   Future<void> _updateFirestoreWithSongData() async {
@@ -117,14 +122,22 @@ class _AddSongState extends State<AddSong> {
       if (songSnapshot.exists) {
         // If the song already exists, update the existing document
         await songRef.set(songData, SetOptions(merge: true)); // Merge to update only specific fields
-        _showPopUpMessage('Song Updated', 'The song "$songName" was updated successfully.');
+        if (mounted) { // Check if the widget is still mounted
+          _showPopUpMessage('Song Updated', 'The song "$songName" was updated successfully.');
+        }
       } else {
         // If the song does not exist, create a new document
         await songRef.set(songData);
-        _showPopUpMessage('Song Added', 'The song "$songName" was added successfully.');
+        if (mounted) { // Check if the widget is still mounted
+          _showPopUpMessage('Song Added', 'The song "$songName" was added successfully.');
+        }
       }
+      // Clear the song name field for the next input
+      //_songNameController.clear();
     } else {
-      _showPopUpMessage('No song name', 'Please insert a name for your song before recording.');
+      if (mounted) { // Check if the widget is still mounted
+        _showPopUpMessage('WARNING', 'Please insert a name for your song before recording.');
+      }
     }
   }
 
