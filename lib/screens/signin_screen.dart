@@ -26,7 +26,7 @@ class _SignInScreenState extends State<SignInScreen> {
   @override
   void dispose() {
     super.dispose();
-    _updateCurrentModeToFreePlay();
+    //_updateCurrentModeToFreePlay();
   }
 
   void _updateCurrentModeToFreePlay() async {

@@ -111,7 +111,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                           'vec': zeros,
                           'tasks': {},
                           'songs': {},
-                          'currentSong': {'A,B,C,A,B,C'},
+                          'currentSong': 'NONE',
                           'currentMode': 'freeplay'
                         });
                         Navigator.pushReplacement(
