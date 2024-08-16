@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
@@ -13,7 +14,11 @@ class LearnPage extends StatefulWidget {
 }
 
 class _LearnPageState extends State<LearnPage> {
-  // Mapping letters back to musical notes
+  final DatabaseReference _dbRef = FirebaseDatabase.instance.ref();
+  StreamSubscription<DatabaseEvent>? _correctSubscription;
+  StreamSubscription<DatabaseEvent>? _percentageSubscription;
+  StreamSubscription<DatabaseEvent>? _challengeSubscription;
+  String currentChallenge = 'None'; // Default challenge
   final Map<String, String> letterToNote = {
     'A': 'Do',
     'B': 'Re',
@@ -26,8 +31,96 @@ class _LearnPageState extends State<LearnPage> {
     'I': 'Re2',
     'J': 'Me2'
   };
+  bool _showEasyHardButtons = true;
 
-  bool _showEasyHardButtons = true; // Control visibility of Easy and Hard buttons
+  @override
+  void initState() {
+    super.initState();
+    _listenToRealtimeUpdates();
+    _listenToChallengeUpdates();
+  }
+
+  @override
+  void dispose() {
+    _cancelSubscriptions();
+    super.dispose();
+  }
+
+  void _listenToRealtimeUpdates() {
+    _correctSubscription = _dbRef.child('correct').onValue.listen((event) async {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return;
+
+      String correct = (event.snapshot.value as String?) ?? '0';
+      await _updateFirestore('correct', correct);
+    });
+
+    _percentageSubscription = _dbRef.child('presntage').onValue.listen((event) async {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return;
+
+      String percentage = (event.snapshot.value as String?) ?? '0';
+      await _updateFirestore('presntage_challenge', percentage);
+    });
+  }
+
+  void _listenToChallengeUpdates() {
+    _challengeSubscription = _dbRef.child('challenge').onValue.listen((event) {
+      setState(() {
+        currentChallenge = (event.snapshot.value as String?) ?? 'None';
+      });
+    });
+  }
+
+  Future<void> _updateFirestore(String field, String value) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null || widget.songId.isEmpty) return;
+
+    final songRef = FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .collection('songs')
+        .doc(widget.songId);
+
+    // Update the specific challenge-based field in Firestore
+    final fieldToUpdate = field == 'presntage_challenge' ? 'presntage_$currentChallenge' : field;
+    await songRef.update({fieldToUpdate: value});
+  }
+
+  void _cancelSubscriptions() {
+    _correctSubscription?.cancel();
+    _percentageSubscription?.cancel();
+    _challengeSubscription?.cancel();
+    _correctSubscription = null;
+    _percentageSubscription = null;
+    _challengeSubscription = null;
+  }
+
+  void _switchToFreePlayMode() async {
+    try {
+      // Cancel any active listeners before making updates
+      _cancelSubscriptions();
+
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return;
+
+      // Update the Firestore and RTDB safely
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .update({'currentMode': 'freePlay', 'challenge': 'None', 'currentSong': 'None'});
+
+      await FirebaseDatabase.instance.reference().update({'name': 'None'});
+      await FirebaseDatabase.instance.reference().update({'currentSong': 'None'});
+      await FirebaseDatabase.instance.reference().update({'currentMode': 'freePlay'});
+      await FirebaseDatabase.instance.reference().update({'challenge': 'None'});
+    } catch (e) {
+      print('Error updating to freePlay mode: $e');
+    }
+
+    // Navigate back after updates are complete
+    Navigator.of(context).pop();
+  }
 
   Future<Map<String, dynamic>?> _fetchSongDetails() async {
     final user = FirebaseAuth.instance.currentUser;
@@ -43,57 +136,23 @@ class _LearnPageState extends State<LearnPage> {
     return doc.data();
   }
 
-  void _switchToFreePlayMode() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
-
-    // Update Firebase challenge to "None"
-    await FirebaseFirestore.instance
-        .collection('users')
-        .doc(user.uid)
-        .update({'currentMode': 'freePlay', 'challenge': 'None', 'currentSong': 'None'});
-
-    // Update Realtime Database
-    await FirebaseDatabase.instance
-        .reference()
-        .update({'currentSong': 'None'});
-
-    await FirebaseDatabase.instance
-        .reference()
-        .update({'currentMode': 'freePlay'});
-    await FirebaseDatabase.instance
-        .reference()
-        .update({'challenge': 'None'});
-        
-
-    // Navigate back
-    Navigator.of(context).pop();
-  }
-
   void _updateCurrentMode(String mode, String challenge, String mappedNotes) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
 
-    // Update Firestore currentMode, challenge, and currentSong
+    // Update Firestore currentMode, challenge, currentSong, and lastSong
     await FirebaseFirestore.instance.collection('users').doc(user.uid).update({
       'currentMode': mode,
       'challenge': challenge,
-      'currentSong': mappedNotes, // Update currentSong to the mappedNotes
+      'currentSong': widget.songId, // Use the songId directly
+      'lastSong': widget.songId,    // Update lastSong to the current songId
     });
 
-    // Update Realtime Database currentSong
-    await FirebaseDatabase.instance
-        .reference()
-        .update({'currentSong': mappedNotes});
-
-    await FirebaseDatabase.instance
-        .reference()
-        .update({'currentMode': mode});
-
-    await FirebaseDatabase.instance
-        .reference()
-        .update({'challenge': challenge});
-        
+    // Update Realtime Database currentSong and name
+    await FirebaseDatabase.instance.reference().update({'currentSong': widget.songId});
+    await FirebaseDatabase.instance.reference().update({'name': widget.songId});
+    await FirebaseDatabase.instance.reference().update({'currentMode': mode});
+    await FirebaseDatabase.instance.reference().update({'challenge': challenge});
   }
 
   void _showEasyModePopup(BuildContext context) async {
@@ -126,9 +185,9 @@ class _LearnPageState extends State<LearnPage> {
             TextButton(
               child: Text('OK'),
               onPressed: () {
-                _updateCurrentMode('learn', 'easy', notes); // Set currentMode to 'learn', challenge to 'easy', and update currentSong with mappedNotes
+                _updateCurrentMode('learn', 'easy', notes);
                 setState(() {
-                  _showEasyHardButtons = false; // Hide Easy and Hard buttons
+                  _showEasyHardButtons = false;
                 });
                 Navigator.of(context).pop();
               },
@@ -169,9 +228,9 @@ class _LearnPageState extends State<LearnPage> {
             TextButton(
               child: Text('OK'),
               onPressed: () {
-                _updateCurrentMode('learn', 'hard', notes); // Set currentMode to 'learn', challenge to 'hard', and update currentSong with mappedNotes
+                _updateCurrentMode('learn', 'hard', notes);
                 setState(() {
-                  _showEasyHardButtons = false; // Hide Easy and Hard buttons
+                  _showEasyHardButtons = false;
                 });
                 Navigator.of(context).pop();
               },

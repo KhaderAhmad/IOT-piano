@@ -64,8 +64,7 @@ class _ShowSongsState extends State<ShowSongs> {
 
           return ListView(
             children: snapshot.data!.docs.map((DocumentSnapshot document) {
-              Map<String, dynamic> song =
-                  document.data() as Map<String, dynamic>;
+              //Map<String, dynamic> song =document.data() as Map<String, dynamic>;
               return ListTile(
                 title: Text(
                   document.id,

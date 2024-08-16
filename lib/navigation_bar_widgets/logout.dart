@@ -170,6 +170,3 @@ class _LogOutState extends State<LogOut> {
     );
   }
 }
-
-
-
