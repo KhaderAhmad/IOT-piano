@@ -1,8 +1,8 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:percent_indicator/percent_indicator.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 
 class Progress extends StatefulWidget {
   final String vec1;
