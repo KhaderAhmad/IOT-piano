@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
@@ -13,7 +15,6 @@ class LearnPage extends StatefulWidget {
 }
 
 class _LearnPageState extends State<LearnPage> {
-  // Mapping letters back to musical notes
   final Map<String, String> letterToNote = {
     'A': 'Do',
     'B': 'Re',
@@ -27,7 +28,114 @@ class _LearnPageState extends State<LearnPage> {
     'J': 'Me2'
   };
 
-  bool _showEasyHardButtons = true; // Control visibility of Easy and Hard buttons
+  bool _showEasyHardButtons = true;
+  String? _challenge;
+
+  late DatabaseReference correctRef;
+  late DatabaseReference percentageRef;
+  late DatabaseReference challengeRef;
+  StreamSubscription<DatabaseEvent>? correctSubscription;
+  StreamSubscription<DatabaseEvent>? percentageSubscription;
+  StreamSubscription<DatabaseEvent>? challengeSubscription;
+
+  String? correctData;
+  String? percentageData;
+  String? challengeData;
+
+  @override
+  void initState() {
+    super.initState();
+
+    correctRef = FirebaseDatabase.instance.ref('/correct');
+    percentageRef = FirebaseDatabase.instance.ref('/presntage');
+    challengeRef = FirebaseDatabase.instance.ref('/challenge');
+
+    _listenToCorrectChanges();
+    _listenToPercentageChanges();
+    _listenToChallengeChanges();
+  }
+
+  @override
+  void dispose() {
+    _cancelSubscriptions();
+    super.dispose();
+  }
+
+  void _listenToCorrectChanges() {
+    correctSubscription = correctRef.onValue.listen((DatabaseEvent event) async {
+      if (event.snapshot.value != null) {
+        setState(() {
+          correctData = event.snapshot.value.toString();
+        });
+        await _updateFirestoreWithLearningData();
+      }
+    });
+  }
+
+  void _listenToPercentageChanges() {
+    percentageSubscription = percentageRef.onValue.listen((DatabaseEvent event) async {
+      if (event.snapshot.value != null) {
+        setState(() {
+          percentageData = event.snapshot.value.toString();
+        });
+        await _updateFirestoreWithLearningData();
+      }
+    });
+  }
+
+  void _listenToChallengeChanges() {
+    challengeSubscription = challengeRef.onValue.listen((DatabaseEvent event) async {
+      if (event.snapshot.value != null) {
+        setState(() {
+          challengeData = event.snapshot.value.toString();
+        });
+        await _updateFirestoreWithLearningData();
+      }
+    });
+  }
+
+  void _cancelSubscriptions() {
+    correctSubscription?.cancel();
+    percentageSubscription?.cancel();
+    challengeSubscription?.cancel();
+  }
+
+  Future<void> _updateFirestoreWithLearningData() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    final songRef = FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .collection('songs')
+        .doc(widget.songId);
+
+    final songSnapshot = await songRef.get();
+
+    Map<String, dynamic> learningData = {};
+    if (correctData != null) learningData['correct'] = correctData;
+    if (percentageData != null) {
+      if (challengeData == 'easy') {
+        learningData['presntage_easy'] = percentageData;
+      } else if (challengeData == 'hard') {
+        learningData['presntage_hard'] = percentageData;
+      }
+    }
+
+    if (songSnapshot.exists) {
+      await songRef.set(learningData, SetOptions(merge: true)); // Merge to update specific fields
+    }
+  }
+
+  Future<void> _updateLastSong() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    await FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .update({'lastSong': widget.songId});
+  }
 
   Future<Map<String, dynamic>?> _fetchSongDetails() async {
     final user = FirebaseAuth.instance.currentUser;
@@ -47,26 +155,15 @@ class _LearnPageState extends State<LearnPage> {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
 
-    // Update Firebase challenge to "None"
     await FirebaseFirestore.instance
         .collection('users')
         .doc(user.uid)
         .update({'currentMode': 'freePlay', 'challenge': 'None', 'currentSong': 'None'});
 
-    // Update Realtime Database
-    await FirebaseDatabase.instance
-        .reference()
-        .update({'currentSong': 'None'});
+    await FirebaseDatabase.instance.ref().update({'currentSong': 'None'});
+    await FirebaseDatabase.instance.ref().update({'currentMode': 'freePlay'});
+    await FirebaseDatabase.instance.ref().update({'challenge': 'None'});
 
-    await FirebaseDatabase.instance
-        .reference()
-        .update({'currentMode': 'freePlay'});
-    await FirebaseDatabase.instance
-        .reference()
-        .update({'challenge': 'None'});
-        
-
-    // Navigate back
     Navigator.of(context).pop();
   }
 
@@ -74,26 +171,17 @@ class _LearnPageState extends State<LearnPage> {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
 
-    // Update Firestore currentMode, challenge, and currentSong
+    _challenge = challenge;
+
     await FirebaseFirestore.instance.collection('users').doc(user.uid).update({
       'currentMode': mode,
       'challenge': challenge,
-      'currentSong': mappedNotes, // Update currentSong to the mappedNotes
+      'currentSong': mappedNotes,
     });
 
-    // Update Realtime Database currentSong
-    await FirebaseDatabase.instance
-        .reference()
-        .update({'currentSong': mappedNotes});
-
-    await FirebaseDatabase.instance
-        .reference()
-        .update({'currentMode': mode});
-
-    await FirebaseDatabase.instance
-        .reference()
-        .update({'challenge': challenge});
-        
+    await FirebaseDatabase.instance.ref().update({'currentSong': mappedNotes});
+    await FirebaseDatabase.instance.ref().update({'currentMode': mode});
+    await FirebaseDatabase.instance.ref().update({'challenge': challenge});
   }
 
   void _showEasyModePopup(BuildContext context) async {
@@ -125,10 +213,11 @@ class _LearnPageState extends State<LearnPage> {
           actions: <Widget>[
             TextButton(
               child: Text('OK'),
-              onPressed: () {
-                _updateCurrentMode('learn', 'easy', notes); // Set currentMode to 'learn', challenge to 'easy', and update currentSong with mappedNotes
+              onPressed: () async {
+                _updateCurrentMode('learn', 'easy', notes);
+                await _updateLastSong();
                 setState(() {
-                  _showEasyHardButtons = false; // Hide Easy and Hard buttons
+                  _showEasyHardButtons = false;
                 });
                 Navigator.of(context).pop();
               },
@@ -168,10 +257,11 @@ class _LearnPageState extends State<LearnPage> {
           actions: <Widget>[
             TextButton(
               child: Text('OK'),
-              onPressed: () {
-                _updateCurrentMode('learn', 'hard', notes); // Set currentMode to 'learn', challenge to 'hard', and update currentSong with mappedNotes
+              onPressed: () async {
+                _updateCurrentMode('learn', 'hard', notes);
+                await _updateLastSong();
                 setState(() {
-                  _showEasyHardButtons = false; // Hide Easy and Hard buttons
+                  _showEasyHardButtons = false;
                 });
                 Navigator.of(context).pop();
               },
@@ -198,7 +288,7 @@ class _LearnPageState extends State<LearnPage> {
         leading: IconButton(
           icon: Icon(Icons.arrow_back),
           onPressed: () {
-            _switchToFreePlayMode(); // Switch to freePlay mode on back arrow press
+            _switchToFreePlayMode();
           },
         ),
       ),
@@ -248,12 +338,12 @@ class _LearnPageState extends State<LearnPage> {
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 40),
-                if (_showEasyHardButtons) // Show Easy and Hard buttons conditionally
+                if (_showEasyHardButtons)
                   Column(
                     children: [
                       ElevatedButton(
                         onPressed: () {
-                          _showEasyModePopup(context); // Show Easy mode popup
+                          _showEasyModePopup(context);
                         },
                         style: ButtonStyle(
                           backgroundColor:
@@ -271,19 +361,19 @@ class _LearnPageState extends State<LearnPage> {
                           ),
                         ),
                         child: const Text(
-                          'Easy',
+                          'Easy Mode',
                           style: TextStyle(
-                            color: Color(0xFFF1F4F8),
-                            fontFamily: 'Plus Jakarta Sans',
-                            fontWeight: FontWeight.bold,
                             fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            fontFamily: 'Plus Jakarta Sans',
+                            color: Colors.white,
                           ),
                         ),
                       ),
                       const SizedBox(height: 20),
                       ElevatedButton(
                         onPressed: () {
-                          _showHardModePopup(context); // Show Hard mode popup
+                          _showHardModePopup(context);
                         },
                         style: ButtonStyle(
                           backgroundColor:
@@ -291,7 +381,7 @@ class _LearnPageState extends State<LearnPage> {
                             if (states.contains(MaterialState.pressed)) {
                               return Colors.black26;
                             }
-                            return const Color(0xFF4B39EF);
+                            return const Color(0xFFFF6F61);
                           }),
                           shape:
                               MaterialStateProperty.all<RoundedRectangleBorder>(
@@ -301,12 +391,12 @@ class _LearnPageState extends State<LearnPage> {
                           ),
                         ),
                         child: const Text(
-                          'Hard',
+                          'Hard Mode',
                           style: TextStyle(
-                            color: Color(0xFFF1F4F8),
-                            fontFamily: 'Plus Jakarta Sans',
-                            fontWeight: FontWeight.bold,
                             fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            fontFamily: 'Plus Jakarta Sans',
+                            color: Colors.white,
                           ),
                         ),
                       ),
