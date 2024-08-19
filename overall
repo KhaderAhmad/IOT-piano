@@ -146,8 +146,8 @@ void lightByChar(char note) {
 #include <ESP32Firebase.h>
 #define _SSID "ICST"            // Your WiFi SSID
 #define _PASSWORD "arduino123"  // Your WiFi Password
-//#define REFERENCE_URL "https://ass2-cb1cb-default-rtdb.firebaseio.com/"
-#define REFERENCE_URL "https://iot-piano-default-rtdb.firebaseio.com/"
+#define REFERENCE_URL "https://ass2-cb1cb-default-rtdb.firebaseio.com/"
+//#define REFERENCE_URL "https://iot-piano-default-rtdb.firebaseio.com/"
 #define FIREBASE_AUTH "AIzaSyB1GPXvfeC1zr0cQ_-go7AmLtPTyiZrPR0"
 
 Firebase firebase(REFERENCE_URL);
@@ -483,7 +483,7 @@ void playSongByNum() {
   Serial.print(count_duration);
         Serial.print("noteNum ");
   Serial.print(noteNum);
-      firebase.setInt("/presntage",  ((count_duration / noteNum) * 100));}
+      firebase.setInt("/presntage",  (int)((count_duration / noteNum) * 100));}
       return;
     }
   }
@@ -494,7 +494,10 @@ void playSongByNum() {
       }
       else{
     firebase.setInt("/correct", num_correct_notes);
-     firebase.setInt("/presntage", ((count_duration / noteNum) * 100));
+     Serial.print(count_duration);
+        Serial.print("noteNum ");
+        
+     firebase.setInt("/presntage", (int)((count_duration / noteNum) * 100));
       }
 }
 
@@ -716,8 +719,9 @@ void while_touched_play_sound_for_learningUpdate(int i, int j, int next1, int ne
 
     if (Note_correct) {
    float miss_dur=(float)((float)miss / dur);
-      if( miss_dur> 1){
-         count_duration+= 0;
+      if(( miss_dur> 1) && (dur < 300)){
+        Serial.println("IM here yohoooooooooooooooooooooo");
+         count_duration+= 0.45;
       }
       else{
         count_duration += (1-miss_dur);
@@ -796,7 +800,7 @@ void while_touched_play_sound_for_learningUpdate(int i, int j, int next1, int ne
        Serial.println("miss_dur");
        Serial.println(miss_dur);
       if( miss_dur> 1){
-         count_duration+= 0;
+         count_duration+= 0.45;
       }
       else{
         count_duration += (1-miss_dur);
