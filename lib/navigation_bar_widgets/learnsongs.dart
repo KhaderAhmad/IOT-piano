@@ -1,5 +1,4 @@
 import 'dart:async';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
@@ -133,6 +132,9 @@ class _LearnPageState extends State<LearnPage> {
   String? percentageData;
   String? challengeData;
 
+  String? initialCorrectData;
+  String? initialPercentageData;
+
   @override
   void initState() {
     super.initState();
@@ -141,9 +143,18 @@ class _LearnPageState extends State<LearnPage> {
     percentageRef = FirebaseDatabase.instance.ref('/presntage');
     challengeRef = FirebaseDatabase.instance.ref('/challenge');
 
+    _fetchInitialRTDBValues();
     _listenToCorrectChanges();
     _listenToPercentageChanges();
     _listenToChallengeChanges();
+  }
+
+  Future<void> _fetchInitialRTDBValues() async {
+    correctData = (await correctRef.once()).snapshot.value?.toString();
+    percentageData = (await percentageRef.once()).snapshot.value?.toString();
+    
+    initialCorrectData = correctData;
+    initialPercentageData = percentageData;
   }
 
   @override
@@ -204,8 +215,10 @@ class _LearnPageState extends State<LearnPage> {
     final songSnapshot = await songRef.get();
 
     Map<String, dynamic> learningData = {};
-    if (correctData != null) learningData['correct'] = correctData;
-    if (percentageData != null) {
+
+    // Only update if there is a change in data
+    if (correctData != initialCorrectData) learningData['correct'] = correctData;
+    if (percentageData != initialPercentageData) {
       if (challengeData == 'easy') {
         learningData['presntage_easy'] = percentageData;
       } else if (challengeData == 'hard') {
@@ -213,7 +226,7 @@ class _LearnPageState extends State<LearnPage> {
       }
     }
 
-    if (songSnapshot.exists) {
+    if (songSnapshot.exists && learningData.isNotEmpty) {
       await songRef.set(learningData, SetOptions(merge: true)); // Merge to update specific fields
     }
   }
@@ -273,7 +286,7 @@ class _LearnPageState extends State<LearnPage> {
     await FirebaseDatabase.instance.ref().update({'currentSong': mappedNotes});
     await FirebaseDatabase.instance.ref().update({'currentMode': mode});
     await FirebaseDatabase.instance.ref().update({'challenge': challenge});
-    await FirebaseDatabase.instance.ref().update({'name': widget.songId}); //????
+    await FirebaseDatabase.instance.ref().update({'name': widget.songId});
   }
 
   void _showEasyModePopup(BuildContext context) async {

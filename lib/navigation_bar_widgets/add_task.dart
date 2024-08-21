@@ -1,5 +1,4 @@
 import 'dart:async';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
@@ -168,35 +167,52 @@ class _AddSongState extends State<AddSong> {
         title: Text(
           'Add a new song for ${widget.userName}',
           style: const TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              fontFamily: 'Plus Jakarta Sans'),
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+            fontFamily: 'Plus Jakarta Sans',
+          ),
         ),
+        backgroundColor: const Color(0xFF4B39EF),
       ),
       body: Center(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
-          child: Column(
-            children: [
-              TextField(
-                controller: _songNameController,
-                decoration: InputDecoration(
-                  labelText: 'Song Name',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12.0),
+          child: Card(
+            elevation: 4,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16.0),
+              side: const BorderSide(color: Color.fromARGB(255, 244, 244, 244), width: 2.0), // Orange border
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  TextField(
+                    controller: _songNameController,
+                    decoration: InputDecoration(
+                      labelText: 'Song Name',
+                      labelStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12.0),
+                      ),
+                    ),
+                    style: const TextStyle(fontSize: 18),
                   ),
-                ),
+                  const SizedBox(height: 20),
+                  Text(
+                    "Please enter a name then press the start button to start recording",
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.normal,
+                      color: Color.fromARGB(239, 236, 60, 11),
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
               ),
-              const SizedBox(height: 20),
-              Text(
-                "Please enter a name then press the start button to start recording",
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.normal,
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ],
+            ),
           ),
         ),
       ),

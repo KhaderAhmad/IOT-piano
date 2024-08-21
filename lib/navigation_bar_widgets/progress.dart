@@ -1,8 +1,8 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:percent_indicator/percent_indicator.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class Progress extends StatefulWidget {
   final String vec1;
@@ -171,148 +171,235 @@ class _ProgressState extends State<Progress> {
         title: Text(
           '${widget.name1}\'s Progress',
           style: const TextStyle(
-              fontSize: 24, fontWeight: FontWeight.bold, fontFamily: 'Plus Jakarta Sans'),
+            fontSize: 26,
+            fontWeight: FontWeight.bold,
+            fontFamily: 'Plus Jakarta Sans',
+          ),
         ),
+        backgroundColor: const Color(0xFF4B39EF),
       ),
       body: SingleChildScrollView(
-        child: Column(
-          children: [
-            if (highestCorrectSongName.isNotEmpty)
-              Column(
-                children: [
-                  Text(
-                    'Highest Correct Song: $highestCorrectSongName',
-                    style: const TextStyle(
-                        fontSize: 20, fontWeight: FontWeight.bold),
-                  ),
-                  CircularPercentIndicator(
-                    radius: 100.0,
-                    lineWidth: 15.0,
-                    percent: correctPercentage,
-                    center: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          '$highestCorrectValue',
-                          style: const TextStyle(
-                              fontFamily: 'Plus Jakarta Sans',
-                              fontWeight: FontWeight.w900,
-                              fontSize: 32),
-                        ),
-                        Text(
-                          "${(correctPercentage * 100).toStringAsFixed(2)}%",
-                          style: const TextStyle(
-                              fontFamily: 'Plus Jakarta Sans',
-                              fontWeight: FontWeight.w900,
-                              fontSize: 18),
-                        ),
-                      ],
-                    ),
-                    progressColor: const Color(0xFF4B39EF),
-                  ),
-                ],
-              ),
-            const SizedBox(height: 20),
-            if (highestCorrectPercentage > 0)
-              Column(
-                children: [
-                  Text(
-                    'Highest Score: ${highestCorrectPercentage.toStringAsFixed(2)}% ($highestScoreSongName)',
-                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                  ),
-                  CircularPercentIndicator(
-                    radius: 75.0,
-                    lineWidth: 10.0,
-                    percent: highestCorrectPercentage / 100,
-                    center: Text(
-                      '${highestCorrectPercentage.toStringAsFixed(2)}%',
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            children: [
+              if (highestCorrectSongName.isNotEmpty)
+                Column(
+                  children: [
+                    Text(
+                      'Highest Correct Song',
                       style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      highestCorrectSongName,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        color: Colors.black54,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    CircularPercentIndicator(
+                      radius: 100.0,
+                      lineWidth: 15.0,
+                      percent: correctPercentage,
+                      center: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            '$highestCorrectValue',
+                            style: const TextStyle(
+                              fontFamily: 'Plus Jakarta Sans',
+                              fontWeight: FontWeight.w900,
+                              fontSize: 32,
+                              color: Colors.black87,
+                            ),
+                          ),
+                          Text(
+                            "${(correctPercentage * 100).toStringAsFixed(2)}%",
+                            style: const TextStyle(
+                              fontFamily: 'Plus Jakarta Sans',
+                              fontWeight: FontWeight.w900,
+                              fontSize: 18,
+                              color: Colors.black87,
+                            ),
+                          ),
+                        ],
+                      ),
+                      linearGradient: const LinearGradient(
+                        colors: [Color(0xFF4B39EF), Color(0xFF39E0EF)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      backgroundColor: const Color(0xFFE0E0E0),
+                      circularStrokeCap: CircularStrokeCap.round,
+                    ),
+                  ],
+                ),
+              const SizedBox(height: 24),
+              if (highestCorrectPercentage > 0)
+                Column(
+                  children: [
+                    Text(
+                      'Highest Score',
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      '${highestCorrectPercentage.toStringAsFixed(2)}% ($highestScoreSongName)',
+                      style: const TextStyle(
+                        fontSize: 18,
+                        color: Colors.black54,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    CircularPercentIndicator(
+                      radius: 75.0,
+                      lineWidth: 10.0,
+                      percent: highestCorrectPercentage / 100,
+                      center: Text(
+                        '${highestCorrectPercentage.toStringAsFixed(2)}%',
+                        style: const TextStyle(
                           fontFamily: 'Plus Jakarta Sans',
                           fontWeight: FontWeight.w900,
-                          fontSize: 18),
+                          fontSize: 18,
+                          color: Colors.black87,
+                        ),
+                      ),
+                      linearGradient: const LinearGradient(
+                        colors: [Colors.green, Colors.lightGreen],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      backgroundColor: const Color(0xFFE0E0E0),
+                      circularStrokeCap: CircularStrokeCap.round,
                     ),
-                    progressColor: Colors.green,
-                  ),
-                ],
-              ),
-            const SizedBox(height: 20),
-            if (bestSongName.isNotEmpty)
-              Column(
-                children: [
-                  Text(
-                    'Best Song: $bestSongName',
-                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                  ),
-                  CircularPercentIndicator(
-                    radius: 75.0,
-                    lineWidth: 10.0,
-                    percent: bestHardAccuracy / 100,
-                    center: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          'Hard: ${bestHardAccuracy.toStringAsFixed(2)}%',
-                          style: const TextStyle(
+                  ],
+                ),
+              const SizedBox(height: 24),
+              if (bestSongName.isNotEmpty)
+                Column(
+                  children: [
+                    Text(
+                      'Best Song',
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      bestSongName,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        color: Colors.black54,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    CircularPercentIndicator(
+                      radius: 75.0,
+                      lineWidth: 10.0,
+                      percent: bestHardAccuracy / 100,
+                      center: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            'Hard: ${bestHardAccuracy.toStringAsFixed(2)}%',
+                            style: const TextStyle(
                               fontFamily: 'Plus Jakarta Sans',
                               fontWeight: FontWeight.w900,
-                              fontSize: 18),
-                        ),
-                        Text(
-                          'Easy: ${bestEasyAccuracy.toStringAsFixed(2)}%',
-                          style: const TextStyle(
+                              fontSize: 18,
+                              color: Colors.black87,
+                            ),
+                          ),
+                          Text(
+                            'Easy: ${bestEasyAccuracy.toStringAsFixed(2)}%',
+                            style: const TextStyle(
                               fontFamily: 'Plus Jakarta Sans',
                               fontWeight: FontWeight.w900,
-                              fontSize: 18),
-                        ),
-                      ],
+                              fontSize: 18,
+                              color: Colors.black87,
+                            ),
+                          ),
+                        ],
+                      ),
+                      linearGradient: const LinearGradient(
+                        colors: [Colors.orange, Colors.deepOrange],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      backgroundColor: const Color(0xFFE0E0E0),
+                      circularStrokeCap: CircularStrokeCap.round,
                     ),
-                    progressColor: Colors.orange,
-                  ),
-                ],
+                  ],
+                ),
+              const SizedBox(height: 24),
+              Text(
+                'Progress of Last Song ($lastSongName):',
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
               ),
-            const SizedBox(height: 20),
-            Text(
-              'Progress of Last Song ($lastSongName):',
-              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            ),
-            Text(
-              'Easy: ${lastEasyAccuracy.toStringAsFixed(2)}%',
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.blue),
-            ),
-            Text(
-              'Hard: ${lastHardAccuracy.toStringAsFixed(2)}%',
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.red),
-            ),
-            SfCartesianChart(
-              primaryXAxis: const CategoryAxis(),
-              primaryYAxis: const NumericAxis(
-                minimum: 0,
-                maximum: 110,
-                labelFormat: '{value}%',
-              ),
-              title: const ChartTitle(text: 'Learning Progress Analysis'),
-              legend: const Legend(isVisible: true),
-              tooltipBehavior: TooltipBehavior(enable: true),
-              series: <CartesianSeries<_SongData, String>>[
-                ColumnSeries<_SongData, String>(
-                  dataSource: fetchedEasyData,
-                  xValueMapper: (_SongData songData, _) => songData.songName,
-                  yValueMapper: (_SongData songData, _) => songData.accuracy,
-                  name: 'Easy',
+              const SizedBox(height: 8),
+              Text(
+                'Easy: ${lastEasyAccuracy.toStringAsFixed(2)}%',
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
                   color: Colors.blue,
-                  dataLabelSettings: const DataLabelSettings(isVisible: true),
                 ),
-                ColumnSeries<_SongData, String>(
-                  dataSource: fetchedHardData,
-                  xValueMapper: (_SongData songData, _) => songData.songName,
-                  yValueMapper: (_SongData songData, _) => songData.accuracy,
-                  name: 'Hard',
+              ),
+              Text(
+                'Hard: ${lastHardAccuracy.toStringAsFixed(2)}%',
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
                   color: Colors.red,
-                  dataLabelSettings: const DataLabelSettings(isVisible: true),
                 ),
-              ],
-            ),
-          ],
+              ),
+              const SizedBox(height: 24),
+              SfCartesianChart(
+                primaryXAxis: const CategoryAxis(),
+                primaryYAxis: const NumericAxis(
+                  minimum: 0,
+                  maximum: 110,
+                  labelFormat: '{value}%',
+                ),
+                title: const ChartTitle(text: 'Learning Progress Analysis'),
+                legend: const Legend(isVisible: true),
+                tooltipBehavior: TooltipBehavior(enable: true),
+                series: <CartesianSeries<_SongData, String>>[
+                  ColumnSeries<_SongData, String>(
+                    dataSource: fetchedEasyData,
+                    xValueMapper: (_SongData songData, _) => songData.songName,
+                    yValueMapper: (_SongData songData, _) => songData.accuracy,
+                    name: 'Easy',
+                    color: Colors.blue,
+                    dataLabelSettings: const DataLabelSettings(isVisible: true),
+                  ),
+                  ColumnSeries<_SongData, String>(
+                    dataSource: fetchedHardData,
+                    xValueMapper: (_SongData songData, _) => songData.songName,
+                    yValueMapper: (_SongData songData, _) => songData.accuracy,
+                    name: 'Hard',
+                    color: Colors.red,
+                    dataLabelSettings: const DataLabelSettings(isVisible: true),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
