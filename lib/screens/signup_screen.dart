@@ -2,9 +2,11 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tracking_board_app/loading/login.dart';
 import 'package:tracking_board_app/reusable_widgets/reusable_widgets.dart';
 import 'package:tracking_board_app/screens/signin_screen.dart';
+import '../walkthrough_screen.dart'; // Import the WalkthroughScreen
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -115,10 +117,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   wrongPass,
                 ),
                 const SizedBox(height: 40),
-                signInSignUpButton(context, false, () {
+                signInSignUpButton(context, false, () async {
                   try {
-                    // Regular expression for checking English characters and digits
-                    final englishPattern = RegExp(r'^[a-zA-Z0-9]+$');
+                    // Regular expression for checking if username contains at least one letter and is not just numbers
+                    final namePattern = RegExp(r'^(?=.*[a-zA-Z])(?=.*[^0-9])');
 
                     if (_usernameTextController.value.text.length < 3 ||
                         _usernameTextController.value.text.length > 8) {
@@ -126,18 +128,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         code: 'short-name',
                         message: 'Username must be 3 to 8 characters long.',
                       );
-                    } else if (!englishPattern
-                        .hasMatch(_usernameTextController.value.text)) {
+                    } else if (!namePattern.hasMatch(_usernameTextController.value.text)) {
                       throw PlatformException(
                         code: 'invalid-name',
                         message:
-                            'Username must contain only English letters and digits.',
-                      );
-                    } else if (!englishPattern
-                        .hasMatch(_emailTextController.value.text.split('@')[0])) {
-                      throw PlatformException(
-                        code: 'invalid-email',
-                        message: 'Email must contain only English letters and digits.',
+                            'Username must contain at least one letter and cannot be only numbers.',
                       );
                     } else {
                       throw PlatformException(
@@ -163,15 +158,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         invalidEmail = false;
                         wrongPass = false;
                       });
-                    } else if (e is PlatformException && e.code == 'invalid-email') {
-                      _showErrorMessage(context, e.message!);
-                      setState(() {
-                        shortName = false;
-                        invalidName = false;
-                        wrongEmail = false;
-                        invalidEmail = true;
-                        wrongPass = false;
-                      });
                     } else if (e is PlatformException && e.code == 'all-good') {
                       FirebaseAuth.instance
                           .createUserWithEmailAndPassword(
@@ -188,14 +174,17 @@ class _SignUpScreenState extends State<SignUpScreen> {
                           'tasks': {},
                           'songs': {},
                           'currentSong': 'NONE',
-                          'currentMode': 'freeplay'
+                          'currentMode': 'freeplay',
+                          'lastSong': 'NONE'
+                        }).then((_) {
+                          _addDefaultSongs(value.user!.uid);
                         });
+                        
+                        // Navigate to WalkthroughScreen after successful sign-up
                         Navigator.pushReplacement(
                             context,
                             MaterialPageRoute(
-                                builder: (context) => Login(
-                                    email: _emailTextController.text,
-                                    password: _passwordTextController.text)));
+                                builder: (context) => WalkthroughScreen()));
                       }).catchError((error) {
                         print("Failed to sign up: $error");
 
@@ -250,6 +239,37 @@ class _SignUpScreenState extends State<SignUpScreen> {
         ),
       ),
     );
+  }
+
+  void _addDefaultSongs(String userId) {
+    final songsCollection = FirebaseFirestore.instance
+        .collection('users')
+        .doc(userId)
+        .collection('songs');
+
+    // Happy Birthday (simplified to fit one octave)
+    songsCollection.doc('HappyBirthday').set({
+      'correct': "0",
+      'duration': "500,500,500,500,1000,1000",
+      'notes': "E,E,F,E,A,G",
+      'presntage_easy': "0",
+    });
+
+    // Jingle Bells (part of the melody, simplified to fit one octave)
+    songsCollection.doc('JingleBells').set({
+      'correct': "0",
+      'duration': "400,400,400,400,800,400,400,400,400,800",
+      'notes': "E,E,E,E,E,E,G,C,D,E",
+      'presntage_easy': "0",
+    });
+
+    // Twinkle little star (part of the melody, simplified to fit one octave)
+    songsCollection.doc('Twinkle little star').set({
+      'correct': "0",
+      'duration': "500,500,500,500,500,500,1000",
+      'notes': "A,A,E,E,F,F,E",
+      'presntage_easy': "0",
+    });
   }
 
   Row signInOption() {

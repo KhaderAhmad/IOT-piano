@@ -28,6 +28,9 @@ class _AddSongState extends State<AddSong> {
   String? recordedData;
   String? durationData;
 
+  bool _isRecordedInitialLoad = true; // Flag to track initial load
+  bool _popupCooldown = false; // Flag to prevent multiple pop-ups
+
   @override
   void initState() {
     super.initState();
@@ -80,7 +83,16 @@ class _AddSongState extends State<AddSong> {
         setState(() {
           recordedData = event.snapshot.value.toString();
         });
-        await _updateFirestoreWithSongData();
+
+        if (_isRecordedInitialLoad) {
+          _isRecordedInitialLoad = false; // Initial load complete
+        } else {
+          if (_songNameController.text.isEmpty && !_popupCooldown) {
+            _showPopUpMessage('WARNING', 'Please insert a name for your song before recording.');
+          } else {
+            await _updateFirestoreWithSongData();
+          }
+        }
       }
     });
   }
@@ -91,7 +103,9 @@ class _AddSongState extends State<AddSong> {
         setState(() {
           durationData = event.snapshot.value.toString();
         });
-        await _updateFirestoreWithSongData();
+        if (!_popupCooldown) {
+          await _updateFirestoreWithSongData();
+        }
       }
     });
   }
@@ -121,43 +135,47 @@ class _AddSongState extends State<AddSong> {
       if (songSnapshot.exists) {
         // If the song already exists, update the existing document
         await songRef.set(songData, SetOptions(merge: true)); // Merge to update only specific fields
-        if (mounted) { // Check if the widget is still mounted
+        if (mounted && !_popupCooldown) { // Check if the widget is still mounted and no cooldown
           _showPopUpMessage('Song Updated', 'The song "$songName" was updated successfully.');
         }
       } else {
         // If the song does not exist, create a new document
         await songRef.set(songData);
-        if (mounted) { // Check if the widget is still mounted
+        if (mounted && !_popupCooldown) { // Check if the widget is still mounted and no cooldown
           _showPopUpMessage('Song Added', 'The song "$songName" was added successfully.');
         }
       }
       // Clear the song name field for the next input
       //_songNameController.clear();
-    } else {
-      if (mounted) { // Check if the widget is still mounted
-        _showPopUpMessage('WARNING', 'Please insert a name for your song before recording.');
-      }
-    }
+    } 
   }
 
   void _showPopUpMessage(String title, String message) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text(title),
-          content: Text(message),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: const Text('OK'),
-            ),
-          ],
-        );
-      },
-    );
+    if (!_popupCooldown) {
+      _popupCooldown = true;
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: Text(title),
+            content: Text(message),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+                child: const Text('OK'),
+              ),
+            ],
+          );
+        },
+      ).then((_) {
+        // Reset the cooldown after the dialog is dismissed
+        Future.delayed(Duration(milliseconds: 500), () {
+          _popupCooldown = false;
+        });
+      });
+    }
   }
 
   @override

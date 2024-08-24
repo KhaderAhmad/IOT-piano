@@ -287,6 +287,13 @@ class _LearnPageState extends State<LearnPage> {
     await FirebaseDatabase.instance.ref().update({'currentMode': mode});
     await FirebaseDatabase.instance.ref().update({'challenge': challenge});
     await FirebaseDatabase.instance.ref().update({'name': widget.songId});
+
+    // Fetching song details to update the duration in RTDb
+    final songData = await _fetchSongDetails();
+    if (songData != null) {
+      final duration = songData['duration'] as String;
+      await FirebaseDatabase.instance.ref().update({'duration': duration});
+    }
   }
 
   void _showEasyModePopup(BuildContext context) async {

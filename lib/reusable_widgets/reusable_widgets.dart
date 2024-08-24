@@ -1,49 +1,38 @@
 import 'package:flutter/material.dart';
 
-Widget reusableTextField(String text, IconData icon, bool isPasswordType, TextEditingController controller, bool hasError) {
-  return Container(
-    margin: const EdgeInsets.symmetric(vertical: 10),
-    child: TextFormField(
-      controller: controller,
-      obscureText: isPasswordType,
-      enableSuggestions: !isPasswordType,
-      autocorrect: !isPasswordType,
-      cursorColor: const Color(0xFF101213),
-      style: const TextStyle(color: Color(0xFF101213), fontSize: 14.0, fontFamily: 'Plus Jakarta Sans', fontWeight: FontWeight.w500), // Updated text style
-      decoration: InputDecoration(
-        prefixIcon: Icon(icon, color: const Color(0xFF57636C)), // Icon color
-        labelText: text,
-        labelStyle: const TextStyle(color: Color(0xFF57636C), fontFamily: 'Plus Jakarta Sans', fontWeight: FontWeight.w500), // Label color and style
-        filled: true,
-        fillColor: const Color(0xFFF1F4F8), // Background color
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12.0),
-          borderSide: BorderSide.none, // Remove border color
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12.0),
-          borderSide: BorderSide.none, // Remove border color when focused
-        ),
-        errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12.0),
-          borderSide: const BorderSide(color: Colors.red), // Remove border color when error
-        ),
-        focusedErrorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12.0),
-          borderSide: const BorderSide(color: Colors.red), // Remove border color when error and focused
-        ),
-        errorText: hasError ? 'Invalid ${text}' : null,
+Widget reusableTextField(String hintText, IconData icon, bool isPasswordType,
+    TextEditingController controller, bool isError) {
+  return TextField(
+    controller: controller,
+    obscureText: isPasswordType,
+    enableSuggestions: !isPasswordType,
+    autocorrect: !isPasswordType,
+    cursorColor: Colors.white,
+    style: TextStyle(color: Colors.white.withOpacity(0.9)),
+    decoration: InputDecoration(
+      prefixIcon: Icon(
+        icon,
+        color: Colors.white70,
       ),
-      keyboardType: isPasswordType ? TextInputType.visiblePassword : TextInputType.emailAddress,
-
+      labelText: hintText,
+      labelStyle: TextStyle(color: Colors.white.withOpacity(0.9)),
+      filled: true,
+      floatingLabelBehavior: FloatingLabelBehavior.never,
+      fillColor: Colors.white.withOpacity(0.3),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(30.0),
+        borderSide: BorderSide(width: 0, style: BorderStyle.none),
+      ),
+      errorText: isError ? 'Invalid Input' : null,
     ),
-
+    keyboardType:
+        isPasswordType ? TextInputType.visiblePassword : TextInputType.emailAddress,
+    textInputAction: TextInputAction.done,
   );
 }
 
-
 Container signInSignUpButton(
-    BuildContext context, bool isLogin, Function onTap){
+    BuildContext context, bool isLogin, Function onTap) {
   return Container(
     width: MediaQuery.of(context).size.width,
     height: 50,
@@ -53,22 +42,88 @@ Container signInSignUpButton(
       onPressed: () {
         onTap();
       },
-      style: ButtonStyle(
-        backgroundColor: MaterialStateProperty.resolveWith((states) {
-          if(states.contains(MaterialState.pressed)){
-            return Colors.black26;
-          }
-          return Color(0xFF4B39EF);
-        }),
-        shape: MaterialStateProperty.all<RoundedRectangleBorder>(
-          RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)))),
       child: Text(
         isLogin ? 'LOG IN' : 'SIGN UP',
         style: const TextStyle(
-          color: Color(0xFFF1F4F8),fontFamily: 'Plus Jakarta Sans', fontWeight: FontWeight.bold, fontSize: 16
-        ),
+            color: Colors.black87, fontWeight: FontWeight.bold, fontSize: 16),
       ),
+      style: ButtonStyle(
+          backgroundColor: MaterialStateProperty.resolveWith((states) {
+            if (states.contains(MaterialState.pressed)) {
+              return Colors.black26;
+            }
+            return Colors.white;
+          }),
+          shape: MaterialStateProperty.all<RoundedRectangleBorder>(
+              RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(30)))),
     ),
   );
 }
 
+Widget floatingQuestionMark(BuildContext context) {
+  return FloatingActionButton(
+    onPressed: () {
+      _showInfoDialog(context);
+    },
+    child: Icon(Icons.help_outline),
+    backgroundColor: Colors.blue,
+  );
+}
+
+void _showInfoDialog(BuildContext context) {
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        title: Text('About the Project'),
+        content: SingleChildScrollView( // This allows the content to scroll if it's too large
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'This app is designed to help you learn and manage your music tasks. '
+                'You can record, play, and track your progress through various songs. '
+                'Navigate through the different sections using the menu, and enjoy learning!\n\n'
+                'Here\'s how to use the app:',
+              ),
+              SizedBox(height: 10),
+              Row(
+                children: [
+                  Icon(Icons.circle, color: Colors.green, size: 16),
+                  SizedBox(width: 10),
+                  Expanded( // This ensures the text wraps inside the available space
+                    child: Text(
+                      'Press the Start button (green) to begin the mode.',
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: 10),
+              Row(
+                children: [
+                  Icon(Icons.circle, color: Colors.red, size: 16),
+                  SizedBox(width: 10),
+                  Expanded( // This ensures the text wraps inside the available space
+                    child: Text(
+                      'Press the Exit button (red) to stop the mode.',
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            child: Text('Close'),
+            onPressed: () {
+              Navigator.of(context).pop();
+            },
+          ),
+        ],
+      );
+    },
+  );
+}

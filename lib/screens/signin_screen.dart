@@ -2,9 +2,11 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tracking_board_app/loading/get_vec.dart';
 import 'package:tracking_board_app/reusable_widgets/reusable_widgets.dart';
 import 'package:tracking_board_app/screens/signup_screen.dart';
+import '../walkthrough_screen.dart'; // Import your WalkthroughScreen
 
 class SignInScreen extends StatefulWidget {
   const SignInScreen({super.key});
@@ -24,12 +26,28 @@ class _SignInScreenState extends State<SignInScreen> {
 
   @override
   void dispose() {
+    _passwordTextController.dispose();
+    _emailTextController.dispose();
     super.dispose();
+  }
+
+  void _updateCurrentModeToFreePlay() async {
+    String userId = FirebaseAuth.instance.currentUser!.uid;
+
+    await FirebaseFirestore.instance
+        .collection('users')
+        .doc(userId)
+        .update({'currntMode': 'freePlay'});
+    
+    await FirebaseDatabase.instance
+        .reference()
+        .update({'currentMode': 'freePlay'});
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      floatingActionButton: floatingQuestionMark(context),
       body: Container(
         width: MediaQuery.of(context).size.width,
         height: MediaQuery.of(context).size.height,
@@ -46,16 +64,7 @@ class _SignInScreenState extends State<SignInScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: <Widget>[
-                const CircleAvatar(
-                  radius: 50,
-                  backgroundColor: Colors.white,
-                  child: Icon(
-                    Icons.person_outline,
-                    size: 50,
-                    color: Color(0xFF4B39EF),
-                  ),
-                ),
-                const SizedBox(height: 40),
+                const SizedBox(height: 100),
                 const Text(
                   'Welcome Back',
                   style: TextStyle(
@@ -64,7 +73,6 @@ class _SignInScreenState extends State<SignInScreen> {
                     fontSize: 36.0,
                     fontWeight: FontWeight.w700,
                   ),
-                  textAlign: TextAlign.center,
                 ),
                 const Padding(
                   padding: EdgeInsetsDirectional.fromSTEB(0.0, 12.0, 0.0, 24.0),
@@ -80,60 +88,58 @@ class _SignInScreenState extends State<SignInScreen> {
                   ),
                 ),
                 const SizedBox(height: 20),
-                reusableTextField(
-                  "User Email", 
-                  Icons.person_outline, 
-                  false, 
-                  _emailTextController, 
-                  false
-                ),
+                reusableTextField("User Email", Icons.person_outline, false, _emailTextController, false),
                 const SizedBox(height: 20),
-                reusableTextField(
-                  "Password", 
-                  Icons.lock_outline, 
-                  true, 
-                  _passwordTextController, 
-                  false
-                ),
+                reusableTextField("Password", Icons.lock_outline, true, _passwordTextController, false),
                 const SizedBox(height: 40),
                 signInSignUpButton(context, true, () async {
-                  await FirebaseAuth.instance
-                      .signInWithEmailAndPassword(
+                  try {
+                    await FirebaseAuth.instance.signInWithEmailAndPassword(
                         email: _emailTextController.text,
-                        password: _passwordTextController.text,
-                      )
-                      .then((value) {
-                    Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(builder: (context) => const GetVec()),
-                    );
-                  }).catchError((error) {
+                        password: _passwordTextController.text
+                    ).then((value) async {
+                      // Check if the walkthrough has been seen
+                      SharedPreferences prefs = await SharedPreferences.getInstance();
+                      bool seenWalkthrough = prefs.getBool('seenWalkthrough') ?? false;
+
+                      if (!seenWalkthrough) {
+                        // If not seen, navigate to the walkthrough screen
+                        Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(builder: (context) => WalkthroughScreen()),
+                        );
+                      } else {
+                        // If seen, navigate to the main part of your app
+                        Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(builder: (context) => const GetVec()),
+                        );
+                      }
+                    });
+                  } catch (error) {
                     String errorMessage = "An error occurred. Please try again.";
                     if (error is FirebaseAuthException) {
-                      print(error.code);
                       if (error.code == 'invalid-credential') {
-                        errorMessage =
-                            "The Email or password you entered does not match, or email does not exist.";
+                        errorMessage = "The Email or password you entered does not match, or email does not exist.";
                       }
                       if (error.code == 'too-many-requests') {
-                        errorMessage =
-                            "Too many attempts have been made to log in, please try again later.";
+                        errorMessage = "Too many attempts have been made to login, please try again later.";
                       }
                     }
                     _showErrorMessage(context, errorMessage);
-                  });
+                  }
                 }),
-                const SizedBox(height: 30),
-                _signUpOption(),
+                const SizedBox(height: 20),
+                signUpOption(),
               ],
             ),
-          ),
+          )
         ),
       ),
     );
   }
 
-  Row _signUpOption() {
+  Row signUpOption() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
@@ -146,10 +152,8 @@ class _SignInScreenState extends State<SignInScreen> {
         ),
         GestureDetector(
           onTap: () {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (context) => const SignUpScreen()),
-            );
+            Navigator.pushReplacement(context,
+              MaterialPageRoute(builder: (context) => const SignUpScreen()));
           },
           child: const Text(
             "Sign Up",
@@ -159,7 +163,7 @@ class _SignInScreenState extends State<SignInScreen> {
               fontFamily: 'Plus Jakarta Sans',
             ),
           ),
-        ),
+        )
       ],
     );
   }
