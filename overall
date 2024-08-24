@@ -66,6 +66,7 @@ uint16_t currtouched = 0;
 void mprSetup() {
   Serial.println("Adafruit MPR121 Capacitive Touch sensor test");
   if (!cap.begin(0x5A)) {
+
     Serial.println("MPR121 not found, check wiring?");
     while (1)
       ;
@@ -144,8 +145,8 @@ void lightByChar(char note) {
 
 // WiFi and Firebase setup
 #include <ESP32Firebase.h>
-#define _SSID "ICST"            // Your WiFi SSID
-#define _PASSWORD "arduino123"  // Your WiFi Password
+#define _SSID "jamila"            // Your WiFi SSID
+#define _PASSWORD "12345678"  // Your WiFi Password
 //#define REFERENCE_URL "https://ass2-cb1cb-default-rtdb.firebaseio.com/"
 #define REFERENCE_URL "https://iot-piano-default-rtdb.firebaseio.com/"
 #define FIREBASE_AUTH "AIzaSyB1GPXvfeC1zr0cQ_-go7AmLtPTyiZrPR0"
@@ -171,7 +172,15 @@ void firebaseSetup() {
 
     lasttouched = currtouched;
     currtouched = cap.touched();
-
+    for (int i = 10; i < 23; i++) {
+        if(i%2==0){
+      pixels.setPixelColor(i, pixels.Color(128, 0, 128));}
+      else{
+          pixels.setPixelColor(i, pixels.Color(150, 0, 0));
+      }
+    }
+    
+    pixels.show();
 
     updateTouchedSet();
 
@@ -206,6 +215,10 @@ void firebaseSetup() {
     Serial.print("-");
   }
   Serial.println("Connected to WIFI");
+  for (int i = 10; i < 23; i++) {
+    pixels.setPixelColor(i, pixels.Color(0, 0, 0));
+  }
+  pixels.show();
 }
 
 
@@ -252,7 +265,7 @@ const int sample_count = 256;  // Adjust sample count if needed
 //int16_t samples[sample_count];
 //int16_t* samples;
 
-#define AT 261.63  //94.922 261.63
+#define AT 261.63  //94.922 261.63 
 #define BT 293.66  // 106.54
 #define CT 329.63  // 119.59//329.63
 #define DT 349.23  //126.70//349.23
@@ -311,8 +324,11 @@ void playTone(float frequency) {
     samples[i] = (int16_t)(sample * 32767);
   }
   size_t bytesWritten;
-  for (int i = 0; i < (SAMPLE_RATE / sampleCount) / 5; i++) {
+  for (int i = 0; i < (SAMPLE_RATE / sampleCount) / (10); i++) {
     i2s_write(I2S_PORT, samples, sampleCount * sizeof(int16_t), &bytesWritten, portMAX_DELAY);
+    // if(currtouched != cap.touched()){
+    //     break;
+    // }
   }
 }
 
@@ -373,8 +389,28 @@ void playSongByNum() {
   bool correct = true;
   //String song = "A,BC,D,E,F";
   //String dur = "1000,5000,1000,5000,1000";
+
+  for (int i = 0; i < 10; i++) {
+    pixels.setPixelColor(i, pixels.Color(255, 255, 0));
+  }
+  pixels.show();
   String song = firebaseReadSong();
+  startLoadingAnimation();
+  for (int i = 0; i < 10; i++) {
+    pixels.setPixelColor(i, pixels.Color(255, 255, 0));
+  }
+  pixels.show();
   String dur = firebaseReadSongDuration();
+
+  startLoadingAnimation();
+  for (int i = 10; i < 23; i++) {
+    pixels.setPixelColor(i, pixels.Color(255, 106, 26));
+  }
+  for (int i = 0; i < 10; i++) {
+    pixels.setPixelColor(i, pixels.Color(0, 0, 0));
+  }
+  pixels.show();
+  pixels.show();
   int num = 0;
   String strduration = "";
   int stop;
@@ -382,6 +418,16 @@ void playSongByNum() {
   int num_correct_notes = 0;
   int num_correct_notes_dur = 0;
   int noteNum = 1;
+
+
+
+   ////////////// Tone to start the song ///////////////
+  
+    playToneForLearn(261.63,200); // C4
+   playToneForLearn(261.63, 200); // C4
+   playToneForLearn(293.66, 300); // D4
+   playToneForLearn(261.63, 300); 
+
   for (int i = 0; i < song.length(); i++) {
 
     if (song[i] == ',') {
@@ -470,11 +516,25 @@ void playSongByNum() {
     if (correct == true) {
       num_correct_notes++;
     }
+
     if (!correct) {
+      for (int i = 0; i < 10; i++) {
+        pixels.setPixelColor(i, pixels.Color(0, 150, 0));
+      }
+      pixels.show();
+
       if (num_correct_notes == 0) {
+        playToneForLearn(GT, 300);
+        playToneForLearn(ET, 300);
+        playToneForLearn(CT, 300);
+        playToneForLearn(AT, 600);
         firebase.setInt("/correct", num_correct_notes);
         firebase.setInt("/presntage", 0);
       } else {
+           playToneForLearn(GT, 300);
+        playToneForLearn(ET, 300);
+        playToneForLearn(CT, 300);
+        playToneForLearn(AT, 600);
         firebase.setInt("/correct", num_correct_notes);
         Serial.print("count_duration ");
         Serial.print(count_duration);
@@ -482,9 +542,21 @@ void playSongByNum() {
         Serial.print(noteNum);
         firebase.setInt("/presntage", (int)((count_duration / noteNum) * 100));
       }
+      for (int i = 0; i < 10; i++) {
+        pixels.setPixelColor(i, pixels.Color(0, 0, 0));
+      }
+      pixels.show();
       return;
     }
   }
+  for (int i = 0; i < 10; i++) {
+    pixels.setPixelColor(i, pixels.Color(100, 0, 0));
+  }
+  pixels.show();
+  playToneForLearn(AT, 300);
+  playToneForLearn(CT, 300);
+  playToneForLearn(ET, 300);
+  playToneForLearn(GT, 600);
   if (num_correct_notes == 0) {
     firebase.setInt("/correct", num_correct_notes);
     firebase.setInt("/presntage", 0);
@@ -495,6 +567,11 @@ void playSongByNum() {
 
     firebase.setInt("/presntage", (int)((count_duration / noteNum) * 100));
   }
+
+  for (int i = 0; i < 10; i++) {
+    pixels.setPixelColor(i, pixels.Color(0, 0, 0));
+  }
+  pixels.show();
 }
 
 bool waitForTouchAndCheckIfCorrectTWOStrigs(String note, String next, unsigned long dur) {
@@ -605,7 +682,7 @@ bool waitForTouchAndCheckIfCorrectTWOStrigs(String note, String next, unsigned l
           while (((cap.touched()) & _BV(i))) {
 
             //lightNextByNum(next);
-            for (int i = 0; i < 12; i++) {
+            for (int i = 0; i < 10; i++) {
               pixels.setPixelColor(i, pixels.Color(0, 150, 0));
             }
             pixels.show();
@@ -615,7 +692,7 @@ bool waitForTouchAndCheckIfCorrectTWOStrigs(String note, String next, unsigned l
             }
             delay(50);
             pixels.show();
-            for (int i = 0; i < 12; i++) {
+            for (int i = 0; i < 10; i++) {
               pixels.setPixelColor(i, pixels.Color(0, 130, 0));
             }
             pixels.show();
@@ -647,8 +724,8 @@ void while_touched_play_sound_for_learningUpdate(int i, int j, int next1, int ne
   int red = 0;
   bool Note_correct = false;
   unsigned long startMillis = millis();
- 
- 
+
+
   if (i != -1 && j != -1)  /// that mean i have two notes
   {
 
@@ -681,7 +758,7 @@ void while_touched_play_sound_for_learningUpdate(int i, int j, int next1, int ne
         }
       } else {
         //lightNextByNum(next);
-        for (int i = 0; i < 12; i++) {
+        for (int i = 0; i < 10; i++) {
           pixels.setPixelColor(i, pixels.Color(0, 150, 0));
         }
         pixels.show();
@@ -690,7 +767,7 @@ void while_touched_play_sound_for_learningUpdate(int i, int j, int next1, int ne
           pixels.setPixelColor(i, pixels.Color(0, 0, 0));
         }
         delay(50);
-        for (int i = 0; i < 12; i++) {
+        for (int i = 0; i < 10; i++) {
           pixels.setPixelColor(i, pixels.Color(0, 130, 0));
         }
         pixels.show();
@@ -721,8 +798,8 @@ void while_touched_play_sound_for_learningUpdate(int i, int j, int next1, int ne
       if (miss_dur > 1) {
         if (dur < 400 && miss_dur < 2.5) {
 
-            Serial.println("i am here *******************************************************************************");
-    
+          Serial.println("i am here *******************************************************************************");
+
           count_duration += 0.9;
 
         } else count_duration += 0.45;
@@ -740,7 +817,7 @@ void while_touched_play_sound_for_learningUpdate(int i, int j, int next1, int ne
       unsigned long curMillis = millis() - startMillis;
       if (i == correctNote1) {
         Note_correct = true;
-        if (curMillis+100 >= dur) {
+        if (curMillis + 100 >= dur) {
           Serial.println("oooh in if baby");
           turnOffByNum(i);
           if (next2 != -1) {
@@ -750,7 +827,7 @@ void while_touched_play_sound_for_learningUpdate(int i, int j, int next1, int ne
             lightByNum(next1);
           }
         } else {
-          green = (int)((float)((float)128 * (float)(millis() ) / (float)(dur + startMillis)));
+          green = (int)((float)((float)128 * (float)(millis()) / (float)(dur + startMillis)));
           Serial.println(green);
 
           pixels.setPixelColor(i, pixels.Color(150 - green, green, 0));
@@ -766,7 +843,7 @@ void while_touched_play_sound_for_learningUpdate(int i, int j, int next1, int ne
         }
       } else {
         //lightNextByNum(next);
-        for (int i = 0; i < 12; i++) {
+        for (int i = 0; i < 10; i++) {
           pixels.setPixelColor(i, pixels.Color(0, 150, 0));
         }
         pixels.show();
@@ -775,7 +852,7 @@ void while_touched_play_sound_for_learningUpdate(int i, int j, int next1, int ne
           pixels.setPixelColor(i, pixels.Color(0, 0, 0));
         }
         delay(50);
-        for (int i = 0; i < 12; i++) {
+        for (int i = 0; i < 10; i++) {
           pixels.setPixelColor(i, pixels.Color(0, 130, 0));
         }
         pixels.show();
@@ -805,7 +882,7 @@ void while_touched_play_sound_for_learningUpdate(int i, int j, int next1, int ne
       if (miss_dur > 1) {
         if (dur < 400 && miss_dur < 2.5) {
           count_duration += 0.7;
-           Serial.println("i am here *******************************************************************************");
+          Serial.println("i am here *******************************************************************************");
         } else count_duration += 0.45;
       } else {
         count_duration += (1 - miss_dur);
@@ -986,9 +1063,14 @@ void updateTouchedSet() {
 }
 
 void freeplay() {
+ cap.begin(0x5A);
+  cap.setThresholds(40, 20);
+
   Serial.println("in freeplay");
 
+
   currtouched = cap.touched();
+  lasttouched = 4095;
   for (int i = 0; i < 10; i++) {
     // Check if electrode 'i' is touched
     touchedElectrodes[i] = 0;
@@ -997,13 +1079,10 @@ void freeplay() {
   while (true) {
     int stop = digitalRead(ExitButton);
 
-    Serial.print("stop");
-    Serial.println(stop);
-    Serial.println(digitalRead(StartButton));
-
     if (stop < 1) {
       return;
     }
+
     lasttouched = currtouched;
     currtouched = cap.touched();
 
@@ -1028,7 +1107,7 @@ void freeplay() {
     }
     pixels.show();
 
-    while (lasttouched == currtouched) {
+    while (lasttouched != 0 && lasttouched == currtouched) {
       playTone((total_frq / count) * (2));
       lasttouched = currtouched;
       currtouched = cap.touched();
@@ -1198,6 +1277,8 @@ void setup() {
   firebaseSetup();
   pinMode(StartButton, INPUT_PULLUP);
   pinMode(ExitButton, INPUT_PULLUP);
+
+  firebase.setString("/currentMode", "freePlay");
 }
 
 
@@ -1213,45 +1294,128 @@ void loop() {
   for (int i = 10; i < 23; i++) {
     pixels.setPixelColor(i, pixels.Color(150, 255, 130));
   }
+   for (int i = 0; i < 10; i++) {
+    pixels.setPixelColor(i, pixels.Color(0, 0, 0));
+  }
   pixels.show();
   if (start < 1) {
-    Serial.println("starting mode");
-    String mode = "freePlay";
-    String path = "/currentMode";
-    mode = firebase.getString(path);
+    for (int i = 0; i < 10; i++) {
+      pixels.setPixelColor(i, pixels.Color(255, 255, 0));
+    }
+    pixels.show();
+    startLoadingAnimationfree();
 
-    if (mode == "freePlay") {
+    if (WiFi.status() == WL_CONNECTED) {
+      Serial.println("starting mode");
+      String mode = "freePlay";
+      String path = "/currentMode";
+      mode = firebase.getString(path);
 
+      if (mode == "freePlay") {
+        for (int i = 10; i < 23; i++) {
+          pixels.setPixelColor(i, pixels.Color(128, 0, 128));
+        }
+        pixels.show();
+        //startLoadingAnimationfree();
+        for (int i = 0; i < 10; i++) {
+          pixels.setPixelColor(i, pixels.Color(0, 0, 0));
+        }
+        pixels.show();
+        freeplay();
+        Serial.println("exit freeplay");
+      } else if (mode == "learn") {
+        //unsigned long st =millis();
+
+        startLoadingAnimation();
+        for (int i = 0; i < 10; i++) {
+          pixels.setPixelColor(i, pixels.Color(255, 255, 0));
+        }
+        pixels.show();
+        String chal = firebaseReadChallenge();
+        startLoadingAnimation();
+        if (chal == "hard") {
+          del = 2000;
+        } else {
+          del = 5000;
+        }
+        playSongByNum();
+        //firebase.setString(path, "freePlay");
+      } else if (mode == "record") {
+
+        for (int i = 0; i < 10; i++) {
+          pixels.setPixelColor(i, pixels.Color(0, 0, 0));
+        }
+        pixels.show();
+        //startLoadingAnimation();
+
+
+
+        for (int i = 10; i < 23; i++) {
+          pixels.setPixelColor(i, pixels.Color(0, 0, 130));
+        }
+        record();
+        //firebase.setString(path, "freePlay");
+      }
+    } else {
       for (int i = 10; i < 23; i++) {
         pixels.setPixelColor(i, pixels.Color(128, 0, 128));
       }
+      for (int i = 0; i < 10; i++) {
+        pixels.setPixelColor(i, pixels.Color(0, 0, 0));
+      }
       pixels.show();
 
-      freeplay();
-      Serial.println("exit freeplay");
-    } else if (mode == "learn") {
-      for (int i = 10; i < 23; i++) {
-        pixels.setPixelColor(i, pixels.Color(255, 106, 26));
-      }
-      pixels.show();
-      String chal = firebaseReadChallenge();
-      if (chal == "hard") {
-        del = 2000;
-      } else {
-        del = 5000;
-      }
-      playSongByNum();
-      //firebase.setString(path, "freePlay");
-    } else if (mode == "record") {
-      for (int i = 10; i < 23; i++) {
-        pixels.setPixelColor(i, pixels.Color(0, 0, 130));
-      }
-      pixels.show();
-      record();
-      //firebase.setString(path, "freePlay");
+      firebaseSetup();
     }
   }
 
   //freeplay();
   // pixels.show();
+}
+
+
+////////////////////////////////////////
+void startLoadingAnimation() {
+  unsigned long startMillis = millis();
+  while (millis() - startMillis < 900) {  // Loading animation runs for 5 seconds or until Firebase returns data
+    for (int i = 10; i < 23; i++) {
+      pixels.setPixelColor(i, pixels.Color(255, 106, 26));
+      pixels.show();
+      delay(100);
+      // Turn off the LED
+      pixels.setPixelColor(i, 0);  // Turn off the LED
+      pixels.show();
+    }
+  }
+}
+
+void startLoadingAnimationfree() {
+  unsigned long startMillis = millis();
+  while (millis() - startMillis < 800) {  // Loading animation runs for 5 seconds or until Firebase returns data
+    for (int i = 10; i < 23; i++) {
+      pixels.setPixelColor(i, pixels.Color(128, 0, 128));
+      pixels.show();
+      delay(100);
+      // Turn off the LED
+      pixels.setPixelColor(i, 0);  // Turn off the LED
+      pixels.show();
+    }
+  }
+}
+
+
+void playToneForLearn(float frequency, int duration) {
+  const int sampleCount = SAMPLE_RATE / frequency;
+  int16_t samples[sampleCount];
+
+  for (int i = 0; i < sampleCount; i++) {
+    float sample = sin(2 * PI * frequency * i / SAMPLE_RATE);
+    samples[i] = (int16_t)(sample * 32767);
+  }
+
+  size_t bytesWritten;
+  int loopCount = duration * SAMPLE_RATE / 1000 / sampleCount;
+  for (int i = 0; i < loopCount; i++) {
+    i2s_write(I2S_PORT, samples, sampleCount * sizeof(int16_t), &bytesWritten, portMAX_DELAY);
+  }
 }
